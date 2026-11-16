@@ -1,0 +1,26 @@
+{% extends "_layout.html" %}
+{% block title %}Recipes{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{% if show_archived %}Archived recipes{% else %}Recipes{% endif %}</h1>
+  <div class="row">
+    <form method="get" role="search" class="row"><label class="sr-only" for="q">Search recipes</label><input id="q" type="search" name="q" value="{{ query }}" placeholder="Search title, tag, ingredient" style="width:260px">{% if show_archived %}<input type="hidden" name="archived" value="1">{% endif %}<button class="btn secondary" type="submit">Search</button></form>
+    <a class="btn" href="{% url 'recipe_new' %}">Add a recipe</a>
+  </div>
+</div>
+{% if recipes %}
+<div class="tile-grid">
+  {% for r in recipes %}
+  <a class="tile" href="{% url 'recipe' r.pk %}">
+    <div class="ph">{% if r.photo %}<img src="{{ r.photo.url }}" alt="" loading="lazy">{% else %}<span>{{ r.title|truncatechars:28 }}</span>{% endif %}</div>
+    <div class="body"><h3>{{ r.title }}</h3>
+      <div class="small muted">Serves {{ r.servings }}{% if r.total_minutes %} · {{ r.total_minutes }} min{% endif %}</div>
+      {% if r.tag_list %}<div style="margin-top:6px">{% for t in r.tag_list|slice:":3" %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">{% if query %}<p>No recipes match “{{ query }}”.</p>{% else %}<p>No recipes yet. Import one from a website, a photo of a cookbook page, or type it in.</p><a class="btn" href="{% url 'recipe_new' %}">Add a recipe</a>{% endif %}</div>
+{% endif %}
+<p class="small" style="margin-top:20px">{% if show_archived %}<a href="{% url 'recipes' %}">Back to recipes</a>{% else %}<a href="?archived=1">Archived recipes</a>{% endif %}</p>
+{% endblock %}

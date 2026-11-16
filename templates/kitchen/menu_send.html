@@ -1,0 +1,16 @@
+{% extends "_layout.html" %}
+{% block title %}Send {{ menu.title }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'household' menu.household_id %}">{{ menu.household.name }}</a> / <a href="{% url 'menu' menu.pk %}">{{ menu.title }}</a></div>
+<h1>Send menu</h1>
+<div class="grid side">
+  <form method="post" class="card" data-busy>{% csrf_token %}
+    {% include "_form_errors.html" %}
+    {% if contacts %}{% include "_field.html" with field=form.recipients %}{% else %}<p class="muted">{{ menu.household.name }} has no contacts yet. <a href="{% url 'household' menu.household_id %}">Add one</a>, or send to an address below.</p>{% endif %}
+    {% include "_field.html" with field=form.extra %}
+    <p class="small muted">Each person gets a nicely formatted email with the dishes, photos and a link to review and approve the menu online.{% if menu.sent_at %} This menu was last sent {{ menu.sent_at|date:"M j, g:i a" }}.{% endif %}</p>
+    <div class="row"><button class="btn" type="submit">Send menu</button><a class="btn secondary" href="{{ menu.client_path }}" target="_blank" rel="noopener">Preview what they'll see</a></div>
+    <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Sending…</div>
+  </form>
+</div>
+{% endblock %}

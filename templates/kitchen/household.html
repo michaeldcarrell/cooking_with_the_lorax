@@ -1,0 +1,97 @@
+{% extends "_layout.html" %}
+{% load kitchen %}
+{% block title %}{{ household.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="{% url 'households' %}">Clients</a></div>
+    <h1>{{ household.name }}{% if household.archived %} <span class="status">Archived</span>{% endif %}</h1>
+    <div class="muted small">Usually serves {{ household.default_servings }}{% if household.address %} · {{ household.address|linebreaksbr }}{% endif %}</div></div>
+  <a class="btn secondary" href="{% url 'household_edit' household.pk %}">Edit details</a>
+</div>
+
+<div class="grid side">
+  <div class="stack">
+    <section class="card" aria-labelledby="menus-h">
+      <div class="card-head"><h2 id="menus-h">Menus</h2></div>
+      {% if menus %}
+      <ul class="list">
+        {% for m in menus %}
+        <li class="list-row">
+          <div><a href="{% url 'menu' m.pk %}"><strong>{{ m.title }}</strong></a>
+            <div class="muted small">{% if m.date_range %}{{ m.date_range }} · {% endif %}{{ m.item_count }} dish{{ m.item_count|pluralize:"es" }}{% if m.unread %} · <strong style="color:var(--accent)">{{ m.unread }} new response{{ m.unread|pluralize }}</strong>{% endif %}</div></div>
+          <div class="row"><span class="status {{ m.status }}">{{ m.get_status_display }}</span>
+            <a class="btn secondary small" href="{% url 'menu_shopping' m.pk %}">Shopping list</a></div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted">No menus yet.</p>{% endif %}
+      <hr>
+      <h3>Plan a new menu</h3>
+      <form method="post" action="{% url 'menu_new' household.pk %}">{% csrf_token %}
+        <div class="fields cols-3">{% for field in new_menu_form %}{% include "_field.html" %}{% endfor %}</div>
+        <button class="btn" type="submit">Start menu</button>
+      </form>
+    </section>
+
+    <section class="card" id="notes" aria-labelledby="notes-h">
+      <h2 id="notes-h">Notes</h2>
+      <form method="post" action="{% url 'note_add' household.pk %}">{% csrf_token %}
+        {{ note_form.body }}
+        <div class="row" style="margin-top:8px"><label class="small" style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0">{{ note_form.pinned }} Pin to top</label><span class="spacer"></span><button class="btn small" type="submit">Add note</button></div>
+      </form>
+      {% if notes %}
+      <ul class="list" style="margin-top:16px">
+        {% for n in notes %}
+        <li>
+          <div>{% if n.pinned %}<span class="chip">Pinned</span> {% endif %}{{ n.body|linebreaksbr }}</div>
+          <div class="row small muted" style="margin-top:4px">
+            <span>{{ n.created_at|date:"M j, Y" }}{% if n.author %} · {{ n.author.first_name|default:n.author.email }}{% endif %}</span>
+            <form method="post" action="{% url 'note_action' n.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="action" value="pin"><button class="linkish" type="submit">{% if n.pinned %}Unpin{% else %}Pin{% endif %}</button></form>
+            <form method="post" action="{% url 'note_action' n.pk %}" class="inline" data-confirm="Delete this note?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger" type="submit">Delete</button></form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="prefs-h">
+      <div class="card-head"><h2 id="prefs-h">Preferences</h2><a class="small" href="{% url 'household_preferences' household.pk %}">Edit</a></div>
+      {% include "kitchen/_prefs.html" %}
+      {% if household.preference_notes %}<p class="small" style="margin-top:8px">{{ household.preference_notes|linebreaksbr }}</p>{% endif %}
+      {% if not household.preferences.exists and not household.preference_notes %}<p class="muted small">None recorded yet. <a href="{% url 'household_preferences' household.pk %}">Add preferences</a></p>{% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="contacts-h">
+      <h2 id="contacts-h">Contacts</h2>
+      {% if contacts %}
+      <ul class="list">
+        {% for c in contacts %}
+        <li>
+          <div class="list-row"><strong>{{ c.name }}</strong><a class="small" href="{% url 'contact_edit' c.pk %}">Edit</a></div>
+          <div class="small muted">{% if c.role %}{{ c.role }} · {% endif %}{% if c.receives_menus and c.email %}Gets menus{% else %}No menus{% endif %}</div>
+          {% if c.email %}<div class="small"><a href="mailto:{{ c.email }}">{{ c.email }}</a></div>{% endif %}
+          {% if c.phone %}<div class="small"><a href="tel:{{ c.phone }}">{{ c.phone }}</a></div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="muted small">Add the people who should receive menus.</p>{% endif %}
+      <details class="more" {% if not contacts %}open{% endif %} style="margin-top:12px">
+        <summary>Add a contact</summary>
+        <form method="post" action="{% url 'contact_add' household.pk %}" style="margin-top:12px">{% csrf_token %}
+          {% for field in contact_form %}{% include "_field.html" %}{% endfor %}
+          <button class="btn small" type="submit">Add contact</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="portal-h">
+      <h2 id="portal-h">Client page</h2>
+      <p class="small muted">Every menu you've sent this household, at one private link. No sign-in needed.</p>
+      <div class="share-box"><label class="sr-only" for="portal-link">Client page link</label><input id="portal-link" readonly value="{{ household.client_url }}"><button class="btn secondary small" type="button" data-copy="#portal-link">Copy</button></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

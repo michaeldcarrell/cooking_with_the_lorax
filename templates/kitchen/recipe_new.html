@@ -1,0 +1,47 @@
+{% extends "_layout.html" %}
+{% block title %}Add a recipe{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'recipes' %}">Recipes</a></div>
+<h1>Add a recipe</h1>
+<div class="card" style="max-width:760px">
+  <div class="tabs" role="tablist" aria-label="How to add the recipe">
+    <button type="button" role="tab" id="t-url" aria-controls="p-url" aria-selected="{% if mode == 'url' or not mode %}true{% else %}false{% endif %}">From a website</button>
+    <button type="button" role="tab" id="t-photos" aria-controls="p-photos" aria-selected="{% if mode == 'photos' %}true{% else %}false{% endif %}">From photos</button>
+    <button type="button" role="tab" id="t-text" aria-controls="p-text" aria-selected="{% if mode == 'text' %}true{% else %}false{% endif %}">Paste text</button>
+    <button type="button" role="tab" id="t-manual" aria-controls="p-manual" aria-selected="{% if mode == 'manual' %}true{% else %}false{% endif %}">Type it in</button>
+  </div>
+
+  <div role="tabpanel" id="p-url" aria-labelledby="t-url" {% if mode and mode != 'url' %}hidden{% endif %}>
+    <form method="post" data-busy>{% csrf_token %}<input type="hidden" name="mode" value="url">
+      <div class="field"><label for="url">Recipe web address</label><input id="url" type="url" name="url" required placeholder="https://…" value="{{ post.url|default:'' }}"></div>
+      <button class="btn" type="submit">Import recipe</button>
+      <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Reading the recipe. This can take up to a minute…</div>
+    </form>
+  </div>
+
+  <div role="tabpanel" id="p-photos" aria-labelledby="t-photos" {% if mode != 'photos' %}hidden{% endif %}>
+    <form method="post" enctype="multipart/form-data" data-busy>{% csrf_token %}<input type="hidden" name="mode" value="photos">
+      <div class="field"><label for="photos">Photos of the recipe</label><input id="photos" type="file" name="photos" accept="image/*" multiple required>
+        <div class="help">A cookbook page, a recipe card, a screenshot. Up to 6 photos, in page order.</div></div>
+      <button class="btn" type="submit">Import recipe</button>
+      <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Reading the photos. This can take up to a minute…</div>
+    </form>
+  </div>
+
+  <div role="tabpanel" id="p-text" aria-labelledby="t-text" {% if mode != 'text' %}hidden{% endif %}>
+    <form method="post" data-busy>{% csrf_token %}<input type="hidden" name="mode" value="text">
+      <div class="field"><label for="text">Recipe text</label><textarea id="text" name="text" rows="12" required placeholder="Paste the whole recipe: title, ingredients and method">{{ post.text|default:'' }}</textarea></div>
+      <button class="btn" type="submit">Import recipe</button>
+      <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Reading the recipe…</div>
+    </form>
+  </div>
+
+  <div role="tabpanel" id="p-manual" aria-labelledby="t-manual" {% if mode != 'manual' %}hidden{% endif %}>
+    <form method="post">{% csrf_token %}<input type="hidden" name="mode" value="manual">
+      <div class="field"><label for="title">Recipe title</label><input id="title" name="title" required></div>
+      <button class="btn" type="submit">Continue</button>
+    </form>
+  </div>
+  <p class="small muted" style="margin-top:16px">Imported recipes open in the editor so you can check them before using them.</p>
+</div>
+{% endblock %}

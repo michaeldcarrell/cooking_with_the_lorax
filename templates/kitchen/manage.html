@@ -1,0 +1,85 @@
+{% extends "_layout.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Admin</h1>{% if user.is_superuser %}<a class="small" href="/django-admin/">Database admin (troubleshooting)</a>{% endif %}</div>
+<div class="grid side">
+  <section class="card" id="preferences" aria-labelledby="pref-h">
+    <h2 id="pref-h">Preference options</h2>
+    <p class="small muted">These are the options you can set on every client's Preferences page. Retiring an option hides it from new choices but keeps it on clients that already have it.</p>
+    {% for cat in categories %}
+    <div id="cat-{{ cat.pk }}" style="margin-top:22px">
+      <div class="card-head" style="margin-bottom:6px"><h3>{{ cat.name }}</h3>
+        <details class="more small"><summary>Edit category</summary>
+          <form method="post" action="{% url 'manage_category' cat.pk %}" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="action" value="update">
+            <div class="field"><label for="c{{ cat.pk }}-name">Name</label><input id="c{{ cat.pk }}-name" name="c{{ cat.pk }}-name" value="{{ cat.name }}" required></div>
+            <div class="field"><label for="c{{ cat.pk }}-help_text">Hint</label><input id="c{{ cat.pk }}-help_text" name="c{{ cat.pk }}-help_text" value="{{ cat.help_text }}"></div>
+            <div class="field"><label for="c{{ cat.pk }}-order">Order</label><input id="c{{ cat.pk }}-order" type="number" min="0" name="c{{ cat.pk }}-order" value="{{ cat.order }}"></div>
+            <button class="btn small" type="submit">Save</button>
+          </form>
+          {% if not cat.used %}<form method="post" action="{% url 'manage_category' cat.pk %}" data-confirm="Delete the {{ cat.name }} category and its options?" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger" type="submit">Delete category</button></form>{% endif %}
+        </details>
+      </div>
+      <table class="plain">
+        {% for opt in cat.options.all %}
+        <tr>
+          <td>{% if opt.active %}{{ opt.name }}{% else %}<span class="muted"><s>{{ opt.name }}</s> (retired)</span>{% endif %}</td>
+          <td style="text-align:right;white-space:nowrap">
+            <details class="more small" style="display:inline-block"><summary>Rename</summary>
+              <form method="post" action="{% url 'manage_option' opt.pk %}" class="row" style="margin-top:6px">{% csrf_token %}<input type="hidden" name="action" value="rename"><label class="sr-only" for="rn-{{ opt.pk }}">New name</label><input id="rn-{{ opt.pk }}" name="name" value="{{ opt.name }}" required style="width:160px"><button class="btn small" type="submit">Save</button></form>
+            </details>
+            <form method="post" action="{% url 'manage_option' opt.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="linkish small" type="submit">{% if opt.active %}Retire{% else %}Restore{% endif %}</button></form>
+            <form method="post" action="{% url 'manage_option' opt.pk %}" class="inline" data-confirm="Delete {{ opt.name }}?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger small" type="submit">Delete</button></form>
+          </td>
+        </tr>
+        {% empty %}<tr><td class="muted small">No options yet.</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+    <hr>
+    <div class="grid two">
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="option">
+        <h3>Add an option</h3>
+        {% include "_form_errors.html" with form=option_form %}
+        {% for field in option_form %}{% include "_field.html" %}{% endfor %}
+        <button class="btn small" type="submit">Add option</button>
+      </form>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="category">
+        <h3>Add a category</h3>
+        {% for field in category_form %}{% include "_field.html" %}{% endfor %}
+        <button class="btn small" type="submit">Add category</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="biz-h">
+      <h2 id="biz-h">Business details</h2>
+      <p class="small muted">Shown on client menus and in menu emails.</p>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="site">
+        {% for field in site_form %}{% include "_field.html" %}{% endfor %}
+        <button class="btn small" type="submit">Save</button>
+      </form>
+    </section>
+
+    <section class="card" id="access" aria-labelledby="acc-h">
+      <h2 id="acc-h">Who can sign in</h2>
+      <p class="small muted">Google accounts that can use this site. Admins can also open this page.</p>
+      <ul class="list">
+        {% for u in allowed_users %}
+        <li class="list-row"><div><span>{{ u.email }}</span>{% if u.is_admin %} <span class="chip">Admin</span>{% endif %}</div>
+          {% if u.pk != request.allowed_user.pk %}<div class="row">
+            <form method="post" action="{% url 'manage_user' u.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="action" value="toggle_admin"><button class="linkish small" type="submit">{% if u.is_admin %}Remove admin{% else %}Make admin{% endif %}</button></form>
+            <form method="post" action="{% url 'manage_user' u.pk %}" class="inline" data-confirm="Remove access for {{ u.email }}?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger small" type="submit">Remove</button></form>
+          </div>{% else %}<span class="small muted">You</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <form method="post" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="action" value="user">
+        {% for field in user_form %}{% include "_field.html" %}{% endfor %}
+        <button class="btn small" type="submit">Give access</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "_layout.html" %}
+{% block title %}{{ recipe.title }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'recipes' %}">Recipes</a></div>
+<div class="recipe-hero{% if recipe.photo %} has-photo{% endif %}">
+  <div>
+    <h1>{{ recipe.title }}{% if recipe.archived %} <span class="status">Archived</span>{% endif %}</h1>
+    {% if recipe.description %}<p>{{ recipe.description }}</p>{% endif %}
+    <div class="facts">
+      {% if recipe.prep_minutes %}<span>Prep <strong>{{ recipe.prep_minutes }} min</strong></span>{% endif %}
+      {% if recipe.cook_minutes %}<span>Cook <strong>{{ recipe.cook_minutes }} min</strong></span>{% endif %}
+      <span>Recipe makes <strong>{{ recipe.servings }}</strong></span>
+    </div>
+    {% if recipe.tag_list %}<div style="margin-bottom:14px">{% for t in recipe.tag_list %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
+    <div class="row">
+      <a class="btn" href="{% url 'recipe_edit' recipe.pk %}">Edit recipe</a>
+      <form method="post" action="{% url 'recipe_archive' recipe.pk %}" class="inline">{% csrf_token %}<button class="btn secondary" type="submit">{% if recipe.archived %}Restore{% else %}Archive{% endif %}</button></form>
+    </div>
+  </div>
+  {% if recipe.photo %}<img src="{{ recipe.photo.url }}" alt="{{ recipe.photo.caption|default:recipe.title }}">{% endif %}
+</div>
+
+<div class="grid side">
+  <div class="stack">
+    <section class="card" aria-labelledby="ing-h">
+      <div class="card-head"><h2 id="ing-h">Ingredients</h2>
+        <form method="get" class="scaler"><label for="servings" style="margin:0;font-weight:400">Servings</label><input id="servings" type="number" name="servings" min="1" max="500" value="{{ servings }}" data-autosubmit><noscript><button class="btn secondary small">Scale</button></noscript></form></div>
+      {% if servings != recipe.servings %}<p class="small muted">Scaled from {{ recipe.servings }} to {{ servings }} servings. <a href="?">Reset</a></p>{% endif %}
+      {% if ingredients %}
+      <ul class="ingredients">
+        {% for ing, amount in ingredients %}<li>{% if amount %}<span class="amt">{{ amount }}</span> {% endif %}{% if ing.unit %}{{ ing.unit }} {% endif %}{{ ing.name }}{% if ing.note %}<span class="muted">, {{ ing.note }}</span>{% endif %}</li>{% endfor %}
+      </ul>
+      {% else %}<p class="muted">No ingredients yet.</p>{% endif %}
+    </section>
+    <section class="card" aria-labelledby="steps-h">
+      <h2 id="steps-h">Method</h2>
+      {% if steps %}<ol class="steps">{% for s in steps %}<li>{{ s.text|linebreaksbr }}</li>{% endfor %}</ol>{% else %}<p class="muted">No steps yet.</p>{% endif %}
+    </section>
+  </div>
+  <div class="stack">
+    {% if recipe.chef_notes %}<section class="card"><h2>Chef's notes</h2><p class="small">{{ recipe.chef_notes|linebreaksbr }}</p><p class="small muted">Private: never shown to clients.</p></section>{% endif %}
+    <section class="card" aria-labelledby="ph-h">
+      <h2 id="ph-h">Photos</h2>
+      {% if photos %}
+      <div class="photo-pick">
+        {% for p in photos %}
+        <form method="post" action="{% url 'recipe_set_photo' recipe.pk %}">{% csrf_token %}<input type="hidden" name="photo" value="{{ p.pk }}">
+          <button type="submit" class="{% if p.pk == recipe.photo_id %}current{% endif %}" title="{% if p.pk == recipe.photo_id %}Main photo{% else %}Use as main photo{% endif %}" aria-label="{% if p.pk == recipe.photo_id %}Main photo{% else %}Use as main photo{% endif %}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"></button></form>
+        {% endfor %}
+      </div>
+      <p class="small muted">Tap a photo to make it the one clients see.</p>
+      {% endif %}
+      <form method="post" action="{% url 'recipe_photo_upload' recipe.pk %}" enctype="multipart/form-data" data-busy>{% csrf_token %}
+        <div class="field"><label for="rp">Add photos of this dish</label><input id="rp" type="file" name="photos" accept="image/*" multiple required></div>
+        <button class="btn small" type="submit">Upload</button>
+        <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Uploading…</div>
+      </form>
+    </section>
+    {% if used_on %}
+    <section class="card"><h2>On menus</h2><ul class="list small">{% for item in used_on %}<li><a href="{% url 'menu' item.menu_id %}">{{ item.menu.title }}</a> <span class="muted">· {{ item.menu.household.name }}</span></li>{% endfor %}</ul></section>
+    {% endif %}
+    {% if recipe.source_url or recipe.source_note %}
+    <p class="small muted">{{ recipe.source_note }}{% if recipe.source_url %}{% if recipe.source_note %}: {% endif %}<a href="{{ recipe.source_url }}" target="_blank" rel="noopener noreferrer">{{ recipe.source_url|truncatechars:60 }}</a>{% endif %}</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+{% load kitchen %}
+{% for key, label in stances %}{% with items=prefs|get_item:key %}{% if items %}
+<div style="margin-bottom:8px"><span class="small muted">{{ label }}:</span>
+  {% for p in items %}<span class="chip {{ key }}">{{ p.option.name }}</span>{% endfor %}</div>
+{% endif %}{% endwith %}{% endfor %}

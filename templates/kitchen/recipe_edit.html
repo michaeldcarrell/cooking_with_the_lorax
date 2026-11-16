@@ -1,0 +1,52 @@
+{% extends "_layout.html" %}
+{% block title %}Edit {{ recipe.title }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'recipes' %}">Recipes</a> / <a href="{% url 'recipe' recipe.pk %}">{{ recipe.title }}</a></div>
+<h1>Edit recipe</h1>
+<form method="post">{% csrf_token %}
+  {% include "_form_errors.html" %}
+  <div class="stack">
+    <section class="card">
+      {% include "_field.html" with field=form.title %}
+      {% include "_field.html" with field=form.description %}
+      <div class="fields cols-3">{% include "_field.html" with field=form.servings %}{% include "_field.html" with field=form.prep_minutes %}{% include "_field.html" with field=form.cook_minutes %}</div>
+      {% include "_field.html" with field=form.tags %}
+    </section>
+
+    <section class="card" aria-labelledby="ing-h">
+      <h2 id="ing-h">Ingredients</h2>
+      <p class="small muted">Amounts can be 2, 1.5, 1 1/2, ½ or a range like 2-3. Leave blank for “to taste”. The store section sorts the shopping list.</p>
+      <table class="ing-table">
+        <thead><tr><th>Amount</th><th>Unit</th><th>Ingredient</th><th>Note</th><th>Section</th><th><span class="sr-only">Remove</span></th></tr></thead>
+        <tbody data-rows="ing">
+          {% for ing, amount in ingredient_rows %}{% include "kitchen/_ingredient_row.html" %}{% endfor %}
+          {% if not ingredient_rows %}{% include "kitchen/_ingredient_row.html" with ing=None amount="" %}{% endif %}
+        </tbody>
+      </table>
+      <button type="button" class="btn secondary small" data-add-row="ing" style="margin-top:10px">Add ingredient</button>
+      <template data-row-template="ing">{% include "kitchen/_ingredient_row.html" with ing=None amount="" %}</template>
+    </section>
+
+    <section class="card" aria-labelledby="steps-h">
+      <h2 id="steps-h">Method</h2>
+      <div data-rows="steps">
+        {% for text in steps %}
+        <div class="step-row" data-row><span class="n" data-step-number>{{ forloop.counter }}.</span><textarea name="step" rows="2" aria-label="Step {{ forloop.counter }}">{{ text }}</textarea><button type="button" class="icon-btn" data-remove-row aria-label="Remove step">×</button></div>
+        {% empty %}
+        <div class="step-row" data-row><span class="n" data-step-number>1.</span><textarea name="step" rows="2" aria-label="Step"></textarea><button type="button" class="icon-btn" data-remove-row aria-label="Remove step">×</button></div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn secondary small" data-add-row="steps">Add step</button>
+      <template data-row-template="steps"><div class="step-row" data-row><span class="n" data-step-number></span><textarea name="step" rows="2" aria-label="Step"></textarea><button type="button" class="icon-btn" data-remove-row aria-label="Remove step">×</button></div></template>
+    </section>
+
+    <section class="card">
+      {% include "_field.html" with field=form.photo %}
+      {% include "_field.html" with field=form.chef_notes %}
+      {% include "_field.html" with field=form.source_url %}
+    </section>
+
+    <div class="row"><button class="btn" type="submit">Save recipe</button><a class="btn secondary" href="{% url 'recipe' recipe.pk %}">Cancel</a></div>
+  </div>
+</form>
+{% endblock %}

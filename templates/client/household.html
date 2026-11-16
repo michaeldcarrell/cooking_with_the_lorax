@@ -1,0 +1,17 @@
+{% extends "client/_base.html" %}
+{% block title %}{{ household.name }}{% endblock %}
+{% block content %}
+<main>
+  <section class="c-hero"><div class="c-wrap">
+    <p class="c-eyebrow">Menus for</p>
+    <h1>{{ household.name }}</h1>
+  </div></section>
+  <div class="c-wrap">
+    {% if menus %}
+    <ul class="list c-menus">
+      {% for m in menus %}<li><a href="{{ m.client_path }}"><strong>{{ m.title }}</strong></a>{% if m.date_range %}<div class="muted small">{{ m.date_range }}</div>{% endif %}</li>{% endfor %}
+    </ul>
+    {% else %}<p class="empty">No menus yet.</p>{% endif %}
+  </div>
+</main>
+{% endblock %}

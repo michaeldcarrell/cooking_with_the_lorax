@@ -1,0 +1,25 @@
+{% extends "_layout.html" %}
+{% block title %}Photos{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Dish photos</h1></div>
+<div class="grid side">
+  <section class="card" aria-labelledby="lib-h">
+    <h2 id="lib-h" class="sr-only">Photo library</h2>
+    {% if photos %}
+    <div class="photo-grid">
+      {% for p in photos %}<a href="{% url 'photo_edit' p.pk %}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"><div class="cap">{{ p.caption|default:p.recipe.title|default:"No caption" }}</div></a>{% endfor %}
+    </div>
+    {% else %}<p class="empty">No photos yet. Upload photos of your dishes to use them on client menus.</p>{% endif %}
+  </section>
+  <section class="card" aria-labelledby="up-h">
+    <h2 id="up-h">Upload</h2>
+    <form method="post" enctype="multipart/form-data" data-busy>{% csrf_token %}
+      <div class="field"><label for="ph">Photos</label><input id="ph" type="file" name="photos" accept="image/*" multiple required></div>
+      {% for field in form %}{% include "_field.html" %}{% endfor %}
+      <button class="btn" type="submit">Upload</button>
+      <div class="busy" role="status"><span class="spinner" aria-hidden="true"></span> Uploading…</div>
+    </form>
+    <p class="small muted" style="margin-top:12px">Photos are resized for the web, and their location data is removed.</p>
+  </section>
+</div>
+{% endblock %}

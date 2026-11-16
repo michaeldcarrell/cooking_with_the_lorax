@@ -1,0 +1,8 @@
+{% load static %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>No access</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body><div class="welcome"><div>
+  <h1>Not on the <em>guest list</em></h1>
+  <p>That Google account doesn't have access to this kitchen. If it should, ask an admin to add it on the Admin page.</p>
+  <a class="btn" href="{% url 'welcome' %}">Try another account</a>
+</div></div></body></html>

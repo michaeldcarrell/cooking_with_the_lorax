@@ -1,0 +1,19 @@
+{% extends "_layout.html" %}
+{% block title %}Edit dish{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'household' item.menu.household_id %}">{{ item.menu.household.name }}</a> / <a href="{% url 'menu' item.menu_id %}">{{ item.menu.title }}</a></div>
+<h1>{{ item.display_title }}</h1>
+<form method="post" class="card" style="max-width:680px">{% csrf_token %}
+  {% include "_form_errors.html" %}
+  <div class="fields cols-3">
+    {% include "_field.html" with field=form.date %}{% include "_field.html" with field=form.course %}{% include "_field.html" with field=form.servings %}
+  </div>
+  {% include "_field.html" with field=form.recipe %}
+  {% include "_field.html" with field=form.title %}
+  {% include "_field.html" with field=form.description %}
+  {% include "_field.html" with field=form.photo %}
+  <datalist id="course-options">{% for c in courses %}<option value="{{ c }}">{% endfor %}</datalist>
+  <div class="row"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'menu' item.menu_id %}#dishes">Cancel</a><span class="spacer"></span>
+    <button class="btn danger small" type="submit" name="delete" value="1" formnovalidate data-confirm="Remove this dish from the menu?">Remove from menu</button></div>
+</form>
+{% endblock %}

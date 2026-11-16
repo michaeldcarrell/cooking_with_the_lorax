@@ -1,0 +1,8 @@
+<tr data-row>
+  <td class="c-amt"><input name="ing_amount" value="{{ amount }}" aria-label="Amount" placeholder="1 ½" inputmode="text"></td>
+  <td class="c-unit"><input name="ing_unit" value="{{ ing.unit }}" aria-label="Unit" placeholder="cup"></td>
+  <td class="c-name"><input name="ing_name" value="{{ ing.name }}" aria-label="Ingredient" placeholder="Ingredient"></td>
+  <td class="c-note"><input name="ing_note" value="{{ ing.note }}" aria-label="Note" placeholder="chopped"></td>
+  <td class="c-sec"><select name="ing_section" aria-label="Store section">{% for key, label in sections %}<option value="{{ key }}" {% if ing.section == key or not ing and key == 'other' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+  <td class="c-x"><button type="button" class="icon-btn" data-remove-row aria-label="Remove ingredient">×</button></td>
+</tr>

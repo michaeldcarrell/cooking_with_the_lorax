@@ -1,0 +1,68 @@
+# Cooking with the Lorax
+
+Lori Weischedel's private-chef workspace at `https://cookingwiththe.loraxglobal.com`.
+Django + Claude, built like `meal_planner`.
+
+## What it does
+
+- **Clients (households)**: contacts (who gets menus), dated notes (pin the important ones), and
+  preferences. Each preference option gets a stance: loves, likes, avoids, or allergy/never.
+- **Recipes**: import from a web address, from photos (cookbook page, recipe card, screenshot), or
+  from pasted text. Claude reads the recipe into ingredients and steps, and it opens in the editor for
+  review. Recipes can also be typed in by hand. The servings box on a recipe scales every amount.
+- **Menus**: a meal plan for one household, made of dishes (a recipe, a date, a course and the number
+  of servings). Dishes can have their own title, description or photo for that menu.
+- **Sending menus**: a formatted email to the household's contacts, linking to a private menu page.
+  Clients approve the menu or leave notes there without signing in. Responses show up on the home page
+  and in the Clients tab.
+- **Client page**: one private link per household that lists every menu they've been sent.
+- **Shopping lists**: built per menu. Ingredients are scaled to each dish's servings, added up across
+  dishes and grouped by store section. Items tick off on a phone, and extra items can be added by hand.
+- **Dish photos**: Lori's own photos, stored in the database and used on menus and in emails.
+- **Admin page** (`/admin/`): preference options, business details shown to clients, and which
+  Google accounts can sign in. `/django-admin/` is the raw database admin for troubleshooting.
+
+Sign-in is Google only, for accounts on the allow list. `lweischedel@gmail.com` and
+`michael@carrell.us` are seeded as admins (`INITIAL_ADMIN_EMAILS`); others are added on the Admin page.
+
+Client links (`/m/<token>/`, `/h/<token>/`) and photo URLs (`/photo/<token>/`) are unguessable and
+need no sign-in. Anyone with a link can view the page and, for menus, respond.
+
+## Setup
+
+1. **Database**: the `cooking_with_the_lorax` database on the home Postgres server (`192.168.68.78`),
+   same login as `meal_planner`. Migrations run when the container starts.
+2. **Environment**: set these in the Portainer stack's environment variables (Portainer writes them to
+   `stack.env`). For a local `docker compose up`, put them in `stack.env` here. Never commit it.
+   - `SECRET_KEY`: a new random value
+   - `APP_BASE_URL`: `https://cookingwiththe.loraxglobal.com`
+   - `DB_HOST`, `DB_USER`, `DB_PASSWORD`: same as `meal_planner`; `DB_NAME=cooking_with_the_lorax`
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: the OAuth client `meal_planner` uses works. Add
+     `https://cookingwiththe.loraxglobal.com/accounts/google/login/callback/` to its authorized
+     redirect URIs.
+   - `ANTHROPIC_API_KEY`; optionally `CLAUDE_MODEL` (default `claude-opus-5-5`)
+   - `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`: Gmail SMTP with an app password (same as `meal_planner`)
+   - Optional: `DEFAULT_FROM_EMAIL` (default `Cooking with the Lorax <meals@carrell.us>`, which must be
+     an address the SMTP account can send as), `MENU_REPLY_TO`, `INITIAL_ADMIN_EMAILS`, `TIME_ZONE`
+3. **Network**: the container listens on host port 8010 and joins the `proxy` network as
+   `cooking_with_the_lorax`.
+   - GoDaddy DNS for loraxglobal.com: CNAME `cookingwiththe` → `@`
+   - Nginx Proxy Manager: proxy host `cookingwiththe.loraxglobal.com` → `192.168.68.78:8010`, with
+     Let's Encrypt and Force SSL
+   - Pi-hole: CNAME `cookingwiththe.loraxglobal.com` → `server.carrell.us`, so it works from home
+4. **Deploy**: as a git-backed Portainer stack (this repo), or `docker compose up -d --build` here.
+
+## How the recipe importer works
+
+`kitchen/importer.py`. A web page is fetched by the app first, and Claude reads its schema.org recipe
+data and text. Only public addresses are fetched, and each redirect is checked. If the site refuses
+the request, Claude fetches the page itself with its web fetch tool. Photos are scaled to 2000px and
+sent as images. The result is structured output (`RecipeDraft`), saved as a recipe and opened in the
+editor. Server-side refusal fallback is on (`fallbacks: "default"`).
+
+## Tests
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+SECRET_KEY=dev .venv/bin/python manage.py test kitchen   # SQLite; Claude, the web and email are mocked
+```

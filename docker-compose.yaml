@@ -1,0 +1,21 @@
+name: cooking_with_the_lorax
+
+services:
+  cooking_with_the_lorax:
+    build: .
+    container_name: cooking_with_the_lorax
+    restart: unless-stopped
+    # Deployed as a git-backed Portainer stack: Portainer writes the stack's
+    # environment variables to stack.env in its own checkout of this repo.
+    env_file:
+      - stack.env
+    ports:
+      - "8010:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

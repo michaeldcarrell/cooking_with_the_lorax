@@ -1,0 +1,112 @@
+{% extends "_layout.html" %}
+{% block title %}{{ menu.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="{% url 'households' %}">Clients</a> / <a href="{% url 'household' household.pk %}">{{ household.name }}</a></div>
+    <h1>{{ menu.title }}</h1>
+    <div class="row small muted">{% if menu.date_range %}<span>{{ menu.date_range }}</span>·{% endif %}<span class="status {{ menu.status }}">{{ menu.get_status_display }}</span>{% if menu.sent_at %}<span>sent {{ menu.sent_at|date:"M j, g:i a" }}</span>{% endif %}</div></div>
+  <div class="row">
+    <a class="btn secondary" href="{{ menu.client_path }}" target="_blank" rel="noopener">Preview</a>
+    <a class="btn secondary" href="{% url 'menu_shopping' menu.pk %}">Shopping list</a>
+    <a class="btn" href="{% url 'menu_send' menu.pk %}">Send to client</a>
+  </div>
+</div>
+
+<div class="grid side">
+  <div class="stack">
+    <section class="card" id="dishes" aria-labelledby="dishes-h">
+      <h2 id="dishes-h">Dishes</h2>
+      {% regroup items by date as days %}
+      {% for day in days %}
+        {% if day.grouper %}<div class="day-label">{{ day.grouper|date:"l, F j" }}</div>{% elif days|length > 1 %}<div class="day-label">No date</div>{% endif %}
+        {% for item in day.list %}
+        <div class="dish">
+          {% with photo=item.display_photo %}{% if photo %}<img class="thumb" src="{{ photo.url }}" alt="">{% else %}<div class="thumb" aria-hidden="true"></div>{% endif %}{% endwith %}
+          <div>
+            <div><strong>{{ item.display_title }}</strong></div>
+            <div class="meta">{% if item.course %}{{ item.course }} · {% endif %}serves {{ item.servings }}{% if item.recipe %} · <a href="{% url 'recipe' item.recipe_id %}?servings={{ item.servings }}">recipe</a>{% else %} · no recipe (not on the shopping list){% endif %}</div>
+          </div>
+          <div class="actions">
+            <form method="post" action="{% url 'menu_item_move' item.pk 'up' %}" class="inline">{% csrf_token %}<button class="icon-btn" type="submit" aria-label="Move {{ item.display_title }} up" title="Move up">↑</button></form>
+            <form method="post" action="{% url 'menu_item_move' item.pk 'down' %}" class="inline">{% csrf_token %}<button class="icon-btn" type="submit" aria-label="Move {{ item.display_title }} down" title="Move down">↓</button></form>
+            <a class="btn secondary small" href="{% url 'menu_item_edit' item.pk %}">Edit</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% empty %}
+        <p class="muted">No dishes yet. Add the first one below.</p>
+      {% endfor %}
+
+      <hr>
+      <h3>Add a dish</h3>
+      <form method="post" action="{% url 'menu_item_add' menu.pk %}">{% csrf_token %}
+        <div class="fields cols-3">
+          {% include "_field.html" with field=item_form.date %}
+          {% include "_field.html" with field=item_form.course %}
+          {% include "_field.html" with field=item_form.servings %}
+        </div>
+        {% include "_field.html" with field=item_form.recipe %}
+        <details class="more"><summary>Title, description or photo for this menu only</summary>
+          <div style="margin-top:12px">
+          {% include "_field.html" with field=item_form.title %}
+          {% include "_field.html" with field=item_form.description %}
+          {% include "_field.html" with field=item_form.photo %}
+          </div>
+        </details>
+        <button class="btn" type="submit" style="margin-top:12px">Add dish</button>
+        <a class="small" style="margin-left:12px" href="{% url 'recipe_new' %}">New recipe</a>
+      </form>
+      <datalist id="course-options">{% for c in courses %}<option value="{{ c }}">{% endfor %}</datalist>
+    </section>
+
+    {% if feedback %}
+    <section class="card" id="feedback" aria-labelledby="fb-h">
+      <h2 id="fb-h">Client responses</h2>
+      <ul class="list">
+        {% for f in feedback %}
+        <li>
+          <div class="row small muted"><strong style="color:var(--ink)">{{ f.name|default:"Client" }}</strong><span>{{ f.created_at|date:"M j, g:i a" }}</span>{% if f.approved %}<span class="status approved">Approved</span>{% endif %}{% if not f.read %}<span class="chip">New</span>{% endif %}</div>
+          {% if f.comment %}<p style="margin:6px 0 0">{{ f.comment|linebreaksbr }}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="mprefs-h">
+      <div class="card-head"><h2 id="mprefs-h">{{ household.name }}</h2><a class="small" href="{% url 'household_preferences' household.pk %}">Edit</a></div>
+      {% include "kitchen/_prefs.html" %}
+      {% if household.preference_notes %}<p class="small">{{ household.preference_notes|linebreaksbr }}</p>{% endif %}
+      {% for n in pinned_notes %}<p class="small"><span class="chip">Note</span> {{ n.body|linebreaksbr }}</p>{% endfor %}
+      {% if not household.preferences.exists and not household.preference_notes and not pinned_notes %}<p class="small muted">No preferences recorded.</p>{% endif %}
+    </section>
+
+    <section class="card" aria-labelledby="details-h">
+      <h2 id="details-h">Menu details</h2>
+      <form method="post">{% csrf_token %}
+        {% include "_form_errors.html" %}
+        {% include "_field.html" with field=form.title %}
+        <div class="fields cols-2">{% include "_field.html" with field=form.starts_on %}{% include "_field.html" with field=form.ends_on %}</div>
+        {% include "_field.html" with field=form.intro %}
+        {% include "_field.html" with field=form.status %}
+        <button class="btn small" type="submit">Save details</button>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="share-h">
+      <h2 id="share-h">Client link</h2>
+      <p class="small muted">Anyone with this link can see the menu and respond. No sign-in needed.</p>
+      <div class="share-box"><label class="sr-only" for="menu-link">Menu link</label><input id="menu-link" readonly value="{{ menu.client_url }}"><button class="btn secondary small" type="button" data-copy="#menu-link">Copy</button></div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <form method="post" action="{% url 'menu_duplicate' menu.pk %}" class="inline">{% csrf_token %}<button class="btn secondary small" type="submit">Copy menu</button></form>
+        <form method="post" action="{% url 'menu_delete' menu.pk %}" class="inline" data-confirm="Delete this menu, its shopping list and client responses?">{% csrf_token %}<button class="btn danger small" type="submit">Delete menu</button></form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

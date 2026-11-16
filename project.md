@@ -1,0 +1,15 @@
+We're building out a website for Lori weischedel so that she can expand out into being a private chef, this should utilize the same stack setup as the rest of the apps on the server for carrell.us. This site will be at cookingwiththe.loraxglobal.com. Well want the following features built into the site:
+- different households
+    - this will allow her to track multiple different clients
+- allow her to add or create recipies
+    - recipie importer (use Claude API for this). Allow her to input URL's, photos or to add them manually
+    - These should include ingidents and steps. She should be able to change the number of servings it makes.
+- She should be able to plan meals per household and log their preferences.
+- Admin page where she can manage global options for preferences.
+    - This page she should be able to login to through Google, also add michael@carrell.us as an admin (so I can troubleshoot)
+- She should be able to keep notes for clients/households
+- She should be able to send clients nicely formatted menus for review by them
+- Each household should have a list of contacts which the menus are sent to
+- Clients should not have to login in order to view the menus, but they should be specific to the client/household.
+- Allow her to upload photos of her own dishes for use in the menus
+- Create a client/household shopping list so that she can know what groceries she needs to get

@@ -1,0 +1,55 @@
+{% extends "_layout.html" %}
+{% block title %}Shopping · {{ menu.title }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'household' menu.household_id %}">{{ menu.household.name }}</a> / <a href="{% url 'menu' menu.pk %}">{{ menu.title }}</a></div>
+<div class="page-head">
+  <h1>Shopping list</h1>
+  <form method="post" class="inline" data-confirm="Rebuild from the menu's recipes? Items you added by hand stay.">{% csrf_token %}<input type="hidden" name="action" value="rebuild"><button class="btn secondary small" type="submit">Rebuild from menu</button></form>
+</div>
+<div class="grid side">
+  <section class="card" aria-labelledby="list-h">
+    <h2 id="list-h" class="sr-only">Items</h2>
+    {% if total %}
+    <div class="progress" aria-hidden="true"><span data-progress style="width:{{ done_pct }}%"></span></div>
+    <div class="small muted" data-progress-label>{{ remaining }} of {{ total }} left</div>
+    {% endif %}
+    {% for label, items in groups %}
+    <div class="shop-section">
+      <h3>{{ label }}</h3>
+      {% for i in items %}
+      <div class="shop-item{% if i.checked %} done{% endif %}">
+        <label><input type="checkbox" {% if i.checked %}checked{% endif %} data-url="{% url 'shopping_toggle' i.pk %}">
+          <span><span class="name">{{ i.name }}</span>{% if i.amount %} <span class="amount muted">· {{ i.amount }}</span>{% endif %}
+          {% if i.used_in %}<span class="used">{{ i.used_in }}</span>{% elif i.manual %}<span class="used">added by hand</span>{% endif %}</span></label>
+        {% if i.manual %}<form method="post" action="{% url 'shopping_delete' i.pk %}" class="inline">{% csrf_token %}<button class="icon-btn" type="submit" aria-label="Remove {{ i.name }}">×</button></form>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% empty %}
+    <p class="empty">Nothing to buy yet. Add dishes with recipes to the menu, or add items here.</p>
+    {% endfor %}
+    {% if total %}
+    <form method="post" style="margin-top:20px" data-confirm="Untick everything and remove hand-added items that are ticked?">{% csrf_token %}<input type="hidden" name="action" value="clear_checked"><button class="linkish small" type="submit">Reset ticked items</button></form>
+    {% endif %}
+  </section>
+  <div class="stack">
+    <section class="card" aria-labelledby="add-h">
+      <h2 id="add-h">Add an item</h2>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="add">
+        <div class="field"><label for="si-name">Item</label><input id="si-name" name="name" required></div>
+        <div class="field"><label for="si-amt">Amount <span class="muted small">(optional)</span></label><input id="si-amt" name="amount" placeholder="e.g. 2 bunches"></div>
+        <div class="field"><label for="si-sec">Section</label><select id="si-sec" name="section">{% for key, label in sections %}<option value="{{ key }}" {% if key == 'other' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <button class="btn small" type="submit">Add</button>
+      </form>
+    </section>
+    {% if without_recipe %}
+    <section class="card">
+      <h2>Not on this list</h2>
+      <p class="small muted">These dishes have no recipe attached, so their ingredients aren't included:</p>
+      <ul class="small">{% for item in without_recipe %}<li>{{ item.display_title }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <p class="small muted">Amounts are scaled to each dish's servings and added up across the menu. Rebuild after changing the menu.</p>
+  </div>
+</div>
+{% endblock %}

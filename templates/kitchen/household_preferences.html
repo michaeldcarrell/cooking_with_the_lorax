@@ -1,0 +1,35 @@
+{% extends "_layout.html" %}
+{% block title %}Preferences · {{ household.name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'households' %}">Clients</a> / <a href="{% url 'household' household.pk %}">{{ household.name }}</a></div>
+<h1>Preferences</h1>
+<p class="muted">Set what {{ household.name }} loves, likes, avoids, or must never have. Leave the rest blank. The options come from the Admin page.</p>
+<form method="post">{% csrf_token %}
+  <div class="grid two">
+  {% for category, options in rows %}
+    <fieldset class="card" style="margin:0">
+      <legend class="sr-only">{{ category.name }}</legend>
+      <h2 aria-hidden="true">{{ category.name }}</h2>
+      {% if category.help_text %}<p class="small muted">{{ category.help_text }}</p>{% endif %}
+      <table class="plain">
+        {% for option, stance in options %}
+        <tr>
+          <td><label for="opt-{{ option.pk }}" style="font-weight:400;margin:0;padding-top:8px">{{ option.name }}{% if not option.active %} <span class="muted small">(retired)</span>{% endif %}</label></td>
+          <td style="width:170px"><select id="opt-{{ option.pk }}" name="opt-{{ option.pk }}">
+            <option value="">—</option>
+            {% for key, label in stances %}<option value="{{ key }}" {% if stance == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select></td>
+        </tr>
+        {% endfor %}
+      </table>
+    </fieldset>
+  {% empty %}
+    <p class="card">No preference options yet. {% if is_admin %}Add some on the <a href="{% url 'manage' %}">Admin page</a>.{% endif %}</p>
+  {% endfor %}
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="field"><label for="pn">Other notes</label><textarea id="pn" name="preference_notes" rows="3" placeholder="e.g. Kids prefer sauces on the side; no raw tomatoes">{{ household.preference_notes }}</textarea></div>
+    <div class="row"><button class="btn" type="submit">Save preferences</button><a class="btn secondary" href="{% url 'household' household.pk %}">Cancel</a></div>
+  </div>
+</form>
+{% endblock %}

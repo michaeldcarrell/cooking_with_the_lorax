@@ -1,0 +1,62 @@
+{% extends "_layout.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Good to see you{% if user.first_name %}, {{ user.first_name }}{% endif %}.</h1>
+  <p class="muted" style="margin:0">{{ households|length }} active client{{ households|length|pluralize }} · {{ recipe_count }} recipe{{ recipe_count|pluralize }}</p></div>
+  <div class="row">
+    <a class="btn secondary" href="{% url 'recipe_new' %}">Add a recipe</a>
+    <a class="btn" href="{% url 'households' %}#new">New client</a>
+  </div>
+</div>
+
+<div class="grid side">
+  <div class="stack">
+    {% if feedback %}
+    <section class="card" aria-labelledby="fb-h">
+      <h2 id="fb-h">New client responses</h2>
+      <ul class="list">
+        {% for f in feedback %}
+        <li>
+          <div class="list-row">
+            <div><a href="{% url 'menu' f.menu_id %}#feedback">{{ f.menu.title }}</a> <span class="muted small">· {{ f.menu.household.name }}</span></div>
+            {% if f.approved %}<span class="status approved">Approved</span>{% endif %}
+          </div>
+          {% if f.comment %}<p class="small" style="margin:4px 0 0">“{{ f.comment|truncatechars:180 }}”{% if f.name %} <span class="muted">— {{ f.name }}</span>{% endif %}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <section class="card" aria-labelledby="up-h">
+      <h2 id="up-h">Upcoming and draft menus</h2>
+      {% if upcoming %}
+      <ul class="list">
+        {% for m in upcoming %}
+        <li class="list-row">
+          <div><a href="{% url 'menu' m.pk %}">{{ m.title }}</a><div class="muted small">{{ m.household.name }}{% if m.date_range %} · {{ m.date_range }}{% endif %}</div></div>
+          <span class="status {{ m.status }}">{{ m.get_status_display }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">No upcoming menus. Open a client to plan one.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="cl-h">
+    <div class="card-head"><h2 id="cl-h">Clients</h2><a class="small" href="{% url 'households' %}">All clients</a></div>
+    {% if households %}
+    <ul class="list">
+      {% for h in households %}
+      <li><a href="{% url 'household' h.pk %}">{{ h.name }}</a><div class="muted small">{{ h.menu_count }} menu{{ h.menu_count|pluralize }}{% if h.last_menu %} · last {{ h.last_menu|date:"M j" }}{% endif %}</div></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty"><p>No clients yet.</p><a class="btn" href="{% url 'households' %}#new">Add your first client</a></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

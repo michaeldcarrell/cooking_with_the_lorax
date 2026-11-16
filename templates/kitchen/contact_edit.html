@@ -1,0 +1,11 @@
+{% extends "_layout.html" %}
+{% block title %}{{ contact.name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'households' %}">Clients</a> / <a href="{% url 'household' contact.household_id %}">{{ contact.household.name }}</a></div>
+<h1>Edit contact</h1>
+<form method="post" class="card" style="max-width:560px">{% csrf_token %}
+  {% for field in form %}{% include "_field.html" %}{% endfor %}
+  <div class="row"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'household' contact.household_id %}">Cancel</a><span class="spacer"></span>
+  <button class="btn danger small" type="submit" name="delete" value="1" formnovalidate data-confirm="Remove {{ contact.name }}?">Remove</button></div>
+</form>
+{% endblock %}

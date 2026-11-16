@@ -1,0 +1,14 @@
+{% extends "_layout.html" %}
+{% block title %}Photo{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'photos' %}">Photos</a></div>
+<div class="grid two">
+  <img src="{{ photo.url }}" alt="{{ photo.caption }}" style="border-radius:12px">
+  <form method="post" class="card">{% csrf_token %}
+    {% for field in form %}{% include "_field.html" %}{% endfor %}
+    <p class="small muted">{{ photo.width }}×{{ photo.height }} · uploaded {{ photo.uploaded_at|date:"M j, Y" }}</p>
+    <div class="row"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'photos' %}">Back</a><span class="spacer"></span>
+      <button class="btn danger small" type="submit" name="delete" value="1" formnovalidate data-confirm="Delete this photo? Menus using it will fall back to the recipe photo.">Delete</button></div>
+  </form>
+</div>
+{% endblock %}

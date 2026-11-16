@@ -1,0 +1,51 @@
+{% extends "client/_base.html" %}
+{% block title %}{{ menu.title }}{% endblock %}
+{% block content %}
+<main>
+  <section class="c-hero"><div class="c-wrap">
+    <p class="c-eyebrow">A menu for {{ menu.household.name }}</p>
+    <h1>{{ menu.title }}</h1>
+    {% if menu.date_range %}<p class="c-dates">{{ menu.date_range }}</p>{% endif %}
+    {% if menu.intro %}<div class="c-intro">{{ menu.intro|linebreaks }}</div>{% endif %}
+  </div></section>
+
+  <div class="c-wrap">
+    {% for date, items in days %}
+    <section class="c-day" {% if date %}aria-label="{{ date|date:'l, F j' }}"{% endif %}>
+      {% if date %}<h2 class="c-day-h">{{ date|date:"l" }} <span>{{ date|date:"F j" }}</span></h2>{% endif %}
+      {% for item in items %}
+      <article class="c-dish{% if item.display_photo %} has-photo{% endif %}">
+        {% with photo=item.display_photo %}{% if photo %}<img src="{{ photo.url }}" alt="{{ item.display_title }}" loading="lazy">{% endif %}{% endwith %}
+        <div>
+          {% if item.course %}<p class="c-course">{{ item.course }}</p>{% endif %}
+          <h3>{{ item.display_title }}</h3>
+          {% if item.display_description %}<p>{{ item.display_description }}</p>{% endif %}
+          <p class="c-serves">Serves {{ item.servings }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+    {% empty %}
+    <p class="empty">This menu is still being written. Check back soon.</p>
+    {% endfor %}
+
+    <section class="c-respond" id="respond" aria-labelledby="respond-h">
+      {% if thanks %}
+      <h2 id="respond-h">Thank you!</h2>
+      <p role="status">{{ site.chef_name }} has your response. Feel free to add anything else below.</p>
+      {% else %}
+      <h2 id="respond-h">How does this look?</h2>
+      <p>Approve the menu, or ask for changes. {{ site.chef_name }} will see your note right away.</p>
+      {% endif %}
+      <form method="post">{% csrf_token %}
+        <div class="field"><label for="fb-name">Your name</label><input id="fb-name" name="name" autocomplete="name"></div>
+        <div class="field"><label for="fb-comment">Changes or notes <span class="muted small">(optional)</span></label><textarea id="fb-comment" name="comment" rows="4" placeholder="e.g. Could we swap Thursday for something vegetarian?"></textarea></div>
+        <div class="row">
+          <button class="btn" type="submit" name="approved" value="1">{% if menu.status == 'approved' %}Approve again{% else %}Approve menu{% endif %}</button>
+          <button class="btn secondary" type="submit" name="approved" value="0">Send note only</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</main>
+{% endblock %}

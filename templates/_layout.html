@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Kitchen{% endblock %} · {{ site.business_name|default:"Cooking with the Lorax" }}</title>
+<link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="{% url 'home' %}">{{ site.business_name|default:"Cooking with the Lorax" }}</a>
+    <nav class="nav" aria-label="Main">
+      <a href="{% url 'households' %}" {% if nav_section == 'clients' %}class="active" aria-current="page"{% endif %}>Clients{% if unread_feedback %}<span class="badge" title="New client responses">{{ unread_feedback }}</span>{% endif %}</a>
+      <a href="{% url 'recipes' %}" {% if nav_section == 'recipes' %}class="active" aria-current="page"{% endif %}>Recipes</a>
+      <a href="{% url 'photos' %}" {% if nav_section == 'photos' %}class="active" aria-current="page"{% endif %}>Photos</a>
+      {% if is_admin %}<a href="{% url 'manage' %}" {% if nav_section == 'manage' %}class="active" aria-current="page"{% endif %}>Admin</a>{% endif %}
+      <form method="post" action="{% url 'signout' %}" class="inline">{% csrf_token %}<button type="submit">Sign out</button></form>
+    </nav>
+  </div>
+</header>
+{% endif %}
+<main>
+  <div class="wrap">
+    {% if messages %}
+    <ul class="messages" role="status">
+      {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</main>
+<script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

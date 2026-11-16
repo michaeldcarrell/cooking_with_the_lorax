@@ -25,7 +25,7 @@ USE_X_FORWARDED_HOST = True
 
 # Google accounts that may sign in, seeded into the AllowedUser table on migrate. More can be added
 # on the Admin page. Everyone listed here is an admin.
-INITIAL_ADMIN_EMAILS = config('INITIAL_ADMIN_EMAILS', default='lweischedel@gmail.com,michael@carrell.us', cast=Csv())
+INITIAL_ADMIN_EMAILS = config('INITIAL_ADMIN_EMAILS', default='lweischedel@gmail.com,lori@loraxglobal.com,michael@carrell.us', cast=Csv())
 
 INSTALLED_APPS = [
     "django.contrib.admin",

@@ -22,8 +22,8 @@ Django + Claude, built like `meal_planner`.
 - **Admin page** (`/admin/`): preference options, business details shown to clients, and which
   Google accounts can sign in. `/django-admin/` is the raw database admin for troubleshooting.
 
-Sign-in is Google only, for accounts on the allow list. `lweischedel@gmail.com` and
-`michael@carrell.us` are seeded as admins (`INITIAL_ADMIN_EMAILS`); others are added on the Admin page.
+Sign-in is Google only, for accounts on the allow list. `lweischedel@gmail.com`,
+`lori@loraxglobal.com` and `michael@carrell.us` are seeded as admins (`INITIAL_ADMIN_EMAILS`); others are added on the Admin page.
 
 Client links (`/m/<token>/`, `/h/<token>/`) and photo URLs (`/photo/<token>/`) are unguessable and
 need no sign-in. Anyone with a link can view the page and, for menus, respond.

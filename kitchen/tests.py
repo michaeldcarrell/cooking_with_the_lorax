@@ -64,7 +64,7 @@ class SignedInTestCase(TestCase):
 class AccessTests(TestCase):
     def test_seeded_admins(self):
         self.assertEqual(set(AllowedUser.objects.filter(is_admin=True).values_list('email', flat=True)),
-                         {'lweischedel@gmail.com', 'michael@carrell.us'})
+                         {'lweischedel@gmail.com', 'lori@loraxglobal.com', 'michael@carrell.us'})
         self.assertTrue(PreferenceCategory.objects.filter(name='Allergies').exists())
 
     def test_anonymous_redirected_to_sign_in(self):

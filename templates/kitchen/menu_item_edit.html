@@ -1,5 +1,21 @@
 {% extends "_layout.html" %}
-{% block title %}Edit dish{% endblock %}
+{% block title %}Edit dish<section class="card" id="dishes" style="max-width:680px;margin-top:20px" aria-labelledby="dishes-h">
+  <div class="card-head"><h2 id="dishes-h">{% if dishes %}Dishes in this meal{% else %}Make it a meal{% endif %}</h2>
+    {% if dishes %}<form method="post" action="{% url 'menu_item_save_meal' item.pk %}" class="inline">{% csrf_token %}<button class="linkish small" type="submit">Save as a new meal</button></form>{% endif %}</div>
+  {% if dishes %}
+  <p class="small muted">Changes here apply to this menu only{% if item.meal %}, not to the saved meal <a href="{% url 'meal' item.meal_id %}">{{ item.meal.display_name }}</a>{% endif %}.</p>
+  {% url 'menu_item_dish' item.pk as action_url %}
+  {% include "kitchen/_dish_rows.html" with action_url=action_url %}
+  {% elif item.recipe %}
+  <p class="small muted">Add sides to {{ item.recipe.title }} to turn this dish into a meal.</p>
+  {% url 'menu_item_dish' item.pk as action_url %}
+  <form method="post" action="{{ action_url }}" class="row">{% csrf_token %}<input type="hidden" name="action" value="add">
+    {% include "_recipe_select.html" with select_id="add-dish" label="Add a side" %}<button class="btn small" type="submit">Add</button></form>
+  {% else %}
+  <p class="small muted">Pick a recipe above first.</p>
+  {% endif %}
+</section>
+{% endblock %}
 {% block content %}
 <div class="crumbs"><a href="{% url 'household' item.menu.household_id %}">{{ item.menu.household.name }}</a> / <a href="{% url 'menu' item.menu_id %}">{{ item.menu.title }}</a></div>
 <h1>{{ item.display_title }}</h1>
@@ -8,7 +24,7 @@
   <div class="fields cols-3">
     {% include "_field.html" with field=form.date %}{% include "_field.html" with field=form.course %}{% include "_field.html" with field=form.servings %}
   </div>
-  {% include "_field.html" with field=form.recipe %}
+  {% if form.recipe %}{% include "_field.html" with field=form.recipe %}{% endif %}
   {% include "_field.html" with field=form.title %}
   {% include "_field.html" with field=form.description %}
   {% include "_field.html" with field=form.photo %}
@@ -16,4 +32,20 @@
   <div class="row"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'menu' item.menu_id %}#dishes">Cancel</a><span class="spacer"></span>
     <button class="btn danger small" type="submit" name="delete" value="1" formnovalidate data-confirm="Remove this dish from the menu?">Remove from menu</button></div>
 </form>
+<section class="card" id="dishes" style="max-width:680px;margin-top:20px" aria-labelledby="dishes-h">
+  <div class="card-head"><h2 id="dishes-h">{% if dishes %}Dishes in this meal{% else %}Make it a meal{% endif %}</h2>
+    {% if dishes %}<form method="post" action="{% url 'menu_item_save_meal' item.pk %}" class="inline">{% csrf_token %}<button class="linkish small" type="submit">Save as a new meal</button></form>{% endif %}</div>
+  {% if dishes %}
+  <p class="small muted">Changes here apply to this menu only{% if item.meal %}, not to the saved meal <a href="{% url 'meal' item.meal_id %}">{{ item.meal.display_name }}</a>{% endif %}.</p>
+  {% url 'menu_item_dish' item.pk as action_url %}
+  {% include "kitchen/_dish_rows.html" with action_url=action_url %}
+  {% elif item.recipe %}
+  <p class="small muted">Add sides to {{ item.recipe.title }} to turn this dish into a meal.</p>
+  {% url 'menu_item_dish' item.pk as action_url %}
+  <form method="post" action="{{ action_url }}" class="row">{% csrf_token %}<input type="hidden" name="action" value="add">
+    {% include "_recipe_select.html" with select_id="add-dish" label="Add a side" %}<button class="btn small" type="submit">Add</button></form>
+  {% else %}
+  <p class="small muted">Pick a recipe above first.</p>
+  {% endif %}
+</section>
 {% endblock %}

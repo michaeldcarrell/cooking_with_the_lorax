@@ -19,6 +19,7 @@
         <div>
           {% if item.course %}<p class="c-course">{{ item.course }}</p>{% endif %}
           <h3>{{ item.display_title }}</h3>
+          {% with dishes=item.dish_list %}{% if dishes and item.title %}<ul class="c-dishes">{% for d in dishes %}<li>{{ d.recipe.title }}</li>{% endfor %}</ul>{% endif %}{% endwith %}
           {% if item.display_description %}<p>{{ item.display_description }}</p>{% endif %}
           <p class="c-serves">Serves {{ item.servings }}</p>
         </div>

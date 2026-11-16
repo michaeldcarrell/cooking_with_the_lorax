@@ -5,7 +5,8 @@
 {% endif %}{% regroup items by date as days %}{% for day in days %}{% if day.grouper %}
 {{ day.grouper|date:"l, F j" }}
 {% endif %}{% for item in day.list %}
-- {% if item.course %}{{ item.course }}: {% endif %}{{ item.display_title }} (serves {{ item.servings }}){% if item.display_description %}
+- {% if item.course %}{{ item.course }}: {% endif %}{{ item.display_title }} (serves {{ item.servings }}){% with dishes=item.dish_list %}{% if dishes and item.title %}
+  {% for d in dishes %}{{ d.recipe.title }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}{% endwith %}{% if item.display_description %}
   {{ item.display_description }}{% endif %}
 {% endfor %}{% endfor %}
 Review and approve the menu: {{ menu_url }}

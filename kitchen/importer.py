@@ -22,7 +22,7 @@ from django.db import transaction
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 
-from kitchen.models import SECTION_KEYS, Ingredient, Recipe, Step
+from kitchen.models import SECTION_KEYS, Ingredient, Recipe, RecipeCategory, Step
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +80,8 @@ class RecipeDraft(BaseModel):
     prep_minutes: int | None
     cook_minutes: int | None
     tags: list[str] = Field(description='A few short tags: meal type, main ingredient, diet (e.g. "vegetarian").')
+    categories: list[str] = Field(description='Which of the kitchen\'s recipe categories (listed in the request) fit '
+                                              'this dish, spelled exactly as listed. [] if none fit.')
     ingredients: list[IngredientDraft]
     steps: list[str]
 
@@ -93,6 +95,11 @@ def _client() -> anthropic.Anthropic:
 
 
 def _ask(content: list[dict], tools: list[dict] | None = None) -> RecipeDraft:
+    names = list(RecipeCategory.objects.values_list('name', flat=True))
+    if names:
+        content = [*content, {'type': 'text', 'text': 'Recipe categories in this kitchen: ' + ', '.join(names) +
+                              '. Put every one that fits this dish in `categories` (e.g. a grain salad can be both '
+                              'a side and a main).'}]
     messages = [{'role': 'user', 'content': content}]
     kwargs = {'tools': tools} if tools else {}
     try:
@@ -264,6 +271,8 @@ def save_draft(draft: RecipeDraft, source_url: str = '', source_note: str = '') 
         source_url=source_url[:1000],
         source_note=source_note[:200],
     )
+    wanted = {name.strip().lower() for name in draft.categories}
+    recipe.categories.set([c for c in RecipeCategory.objects.all() if c.name.lower() in wanted])
     Ingredient.objects.bulk_create([
         Ingredient(recipe=recipe, order=i, quantity=_decimal(ing.quantity), quantity_max=_decimal(ing.quantity_max),
                    unit=ing.unit.strip()[:40], name=ing.name.strip()[:200] or '?', note=ing.note.strip()[:200],

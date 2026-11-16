@@ -1,0 +1,27 @@
+{# Editable dish rows for a meal or a meal on a menu. Params: dishes, action_url, groups #}
+{% for d in dishes %}
+<div class="meal-dish">
+  {% if d.recipe.photo %}<img class="thumb" src="{{ d.recipe.photo.url }}" alt="">{% else %}<div class="thumb" aria-hidden="true"></div>{% endif %}
+  <div>
+    <a href="{% url 'recipe' d.recipe_id %}"><strong>{{ d.recipe.title }}</strong></a>
+    <div class="meta">{% for c in d.recipe.categories.all %}<span class="chip">{{ c.name }}</span>{% empty %}<span class="muted">No category</span>{% endfor %}</div>
+    <details class="more small"><summary>Swap</summary>
+      <form method="post" action="{{ action_url }}" class="row" style="margin-top:6px">{% csrf_token %}<input type="hidden" name="action" value="swap"><input type="hidden" name="dish" value="{{ d.pk }}">
+        {% include "_recipe_select.html" with select_id="swap-" id_suffix=d.pk selected=d.recipe_id label="Swap for" %}
+        <button class="btn small" type="submit">Swap</button></form>
+    </details>
+  </div>
+  <div class="actions">
+    <form method="post" action="{{ action_url }}" class="inline">{% csrf_token %}<input type="hidden" name="dish" value="{{ d.pk }}"><button class="icon-btn" type="submit" name="action" value="up" aria-label="Move {{ d.recipe.title }} up" title="Move up">↑</button></form>
+    <form method="post" action="{{ action_url }}" class="inline">{% csrf_token %}<input type="hidden" name="dish" value="{{ d.pk }}"><button class="icon-btn" type="submit" name="action" value="down" aria-label="Move {{ d.recipe.title }} down" title="Move down">↓</button></form>
+    <form method="post" action="{{ action_url }}" class="inline">{% csrf_token %}<input type="hidden" name="dish" value="{{ d.pk }}"><button class="icon-btn" type="submit" name="action" value="remove" aria-label="Remove {{ d.recipe.title }}" title="Remove">×</button></form>
+  </div>
+</div>
+{% empty %}
+<p class="muted">No dishes yet. Add a main, then mix in sides.</p>
+{% endfor %}
+<form method="post" action="{{ action_url }}" class="add-dish">{% csrf_token %}<input type="hidden" name="action" value="add">
+  <h3>Add a dish</h3>
+  <div class="row">{% include "_recipe_select.html" with select_id="add-dish" label="Choose a recipe" %}<button class="btn small" type="submit">Add</button></div>
+  <p class="small muted" style="margin:6px 0 0">Recipes are grouped by category. <a href="{% url 'recipe_new' %}">New recipe</a></p>
+</form>

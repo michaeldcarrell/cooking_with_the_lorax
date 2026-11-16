@@ -216,12 +216,27 @@ class DishPhoto(models.Model):
         return f'{settings.PUBLIC_BASE_URL}{self.url()}'
 
 
+class RecipeCategory(models.Model):
+    """What kind of dish a recipe is (Main, Side, Breakfast…). Managed on the Admin page."""
+    name = models.CharField(max_length=60, unique=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = 'recipe categories'
+
+    def __str__(self):
+        return self.name
+
+
 class Recipe(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, help_text='A sentence or two clients will see on menus.')
     servings = models.PositiveIntegerField(default=4)
     prep_minutes = models.PositiveIntegerField(null=True, blank=True)
     cook_minutes = models.PositiveIntegerField(null=True, blank=True)
+    categories = models.ManyToManyField(RecipeCategory, blank=True, related_name='recipes',
+                                        help_text='What kind of dish this is. Pick as many as fit.')
     tags = models.CharField(max_length=300, blank=True, help_text='Comma separated, e.g. gluten-free, dinner, freezer-friendly')
     chef_notes = models.TextField(blank=True, help_text='Private. Never shown to clients.')
     source_url = models.URLField(max_length=1000, blank=True)
@@ -288,6 +303,54 @@ class Step(models.Model):
         ordering = ['order', 'pk']
 
 
+class Meal(models.Model):
+    """A saved combination of recipes, e.g. a main with two sides, reused across menus."""
+    name = models.CharField(max_length=200, blank=True, help_text='Leave blank to name it after its dishes.')
+    description = models.TextField(blank=True, help_text='A sentence or two clients will see on menus.')
+    photo = models.ForeignKey(DishPhoto, null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
+                              help_text='Leave blank to use the first dish\'s photo.')
+    chef_notes = models.TextField(blank=True, help_text='Private. Never shown to clients.')
+    archived = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name', '-created_at']
+
+    def __str__(self):
+        return self.display_name()
+
+    def get_absolute_url(self):
+        return reverse('meal', args=[self.pk])
+
+    def recipes(self) -> list['Recipe']:
+        return [d.recipe for d in self.dishes.all()]
+
+    def display_name(self) -> str:
+        return self.name or join_titles([r.title for r in self.recipes()]) or 'Untitled meal'
+
+    def display_photo(self) -> DishPhoto | None:
+        return self.photo or next((r.photo for r in self.recipes() if r.photo_id), None)
+
+
+class MealDish(models.Model):
+    meal = models.ForeignKey(Meal, on_delete=models.CASCADE, related_name='dishes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_dishes')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'pk']
+
+
+def join_titles(titles: list[str]) -> str:
+    """"A", "A with B", "A with B and C"."""
+    if len(titles) <= 1:
+        return titles[0] if titles else ''
+    rest = titles[1:]
+    tail = rest[0] if len(rest) == 1 else ', '.join(rest[:-1]) + ' and ' + rest[-1]
+    return f'{titles[0]} with {tail}'
+
+
 class Menu(models.Model):
     """A meal plan for one household, sent to its contacts for review."""
     STATUSES = [('draft', 'Draft'), ('sent', 'Sent'), ('approved', 'Approved')]
@@ -330,7 +393,13 @@ class Menu(models.Model):
 
 
 class MenuItem(models.Model):
+    """One entry on a menu: a single recipe (`recipe`), or a meal made of several dishes (`dishes`).
+
+    A meal's dishes are copied from the saved meal when it's added, so swapping a side changes this menu only.
+    """
     menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name='items')
+    meal = models.ForeignKey('Meal', null=True, blank=True, on_delete=models.SET_NULL, related_name='menu_items',
+                             help_text='The saved meal this came from, if any.')
     order = models.PositiveIntegerField(default=0)
     date = models.DateField(null=True, blank=True)
     course = models.CharField(max_length=60, blank=True, help_text='e.g. Dinner, Starter, Dessert')
@@ -344,19 +413,64 @@ class MenuItem(models.Model):
     class Meta:
         ordering = ['date', 'order', 'pk']
 
+    def __str__(self):
+        return self.display_title()
+
+    def is_meal(self) -> bool:
+        return not self.recipe_id and bool(self.dish_list())
+
+    def dish_list(self) -> list['MenuItemDish']:
+        # Views prefetch `dishes__recipe__photo` so this doesn't query per call.
+        return list(self.dishes.all()) if self.pk else []
+
+    def recipes(self) -> list['Recipe']:
+        """Every recipe this entry cooks."""
+        if self.recipe:
+            return [self.recipe]
+        return [d.recipe for d in self.dish_list()]
+
     def display_title(self) -> str:
-        return self.title or (self.recipe.title if self.recipe else 'Untitled dish')
+        if self.title:
+            return self.title
+        if self.recipe:
+            return self.recipe.title
+        if self.meal and self.meal.name:
+            return self.meal.name
+        return join_titles([r.title for r in self.recipes()]) or 'Untitled dish'
 
     def display_description(self) -> str:
-        return self.description or (self.recipe.description if self.recipe else '')
+        if self.description:
+            return self.description
+        if self.recipe:
+            return self.recipe.description
+        return self.meal.description if self.meal else ''
 
     def display_photo(self) -> DishPhoto | None:
-        return self.photo or (self.recipe.photo if self.recipe else None)
+        if self.photo:
+            return self.photo
+        if self.recipe:
+            return self.recipe.photo
+        if self.meal and self.meal.photo_id:
+            return self.meal.photo
+        return next((r.photo for r in self.recipes() if r.photo_id), None)
+
+    def scale_for(self, recipe: 'Recipe') -> Decimal:
+        if not recipe.servings:
+            return Decimal(1)
+        return Decimal(self.servings) / Decimal(recipe.servings)
 
     def scale(self) -> Decimal:
-        if not self.recipe or not self.recipe.servings:
-            return Decimal(1)
-        return Decimal(self.servings) / Decimal(self.recipe.servings)
+        return self.scale_for(self.recipe) if self.recipe else Decimal(1)
+
+
+class MenuItemDish(models.Model):
+    """One dish of a meal on a menu."""
+    item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, related_name='dishes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='menu_dishes')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'pk']
 
 
 class MenuFeedback(models.Model):

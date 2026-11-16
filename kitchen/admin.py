@@ -35,6 +35,32 @@ class MenuAdmin(admin.ModelAdmin):
     inlines = [MenuItemInline]
 
 
+class MenuItemDishInline(admin.TabularInline):
+    model = models.MenuItemDish
+    extra = 0
+    raw_id_fields = ['recipe']
+
+
+@admin.register(models.MenuItem)
+class MenuItemAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'menu', 'date', 'course']
+    inlines = [MenuItemDishInline]
+    raw_id_fields = ['recipe', 'meal', 'photo']
+
+
+class MealDishInline(admin.TabularInline):
+    model = models.MealDish
+    extra = 0
+    raw_id_fields = ['recipe']
+
+
+@admin.register(models.Meal)
+class MealAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'archived', 'updated_at']
+    inlines = [MealDishInline]
+    raw_id_fields = ['photo']
+
+
 @admin.register(models.DishPhoto)
 class DishPhotoAdmin(admin.ModelAdmin):
     list_display = ['pk', 'caption', 'recipe', 'width', 'height', 'uploaded_at']
@@ -44,5 +70,5 @@ class DishPhotoAdmin(admin.ModelAdmin):
 
 for model in (models.AllowedUser, models.SiteSettings, models.PreferenceCategory, models.PreferenceOption,
               models.Household, models.HouseholdPreference, models.Contact, models.Note, models.MenuFeedback,
-              models.ShoppingItem):
+              models.ShoppingItem, models.RecipeCategory):
     admin.site.register(model)

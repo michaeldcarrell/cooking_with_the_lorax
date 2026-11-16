@@ -50,26 +50,25 @@ def save_photo(upload, user, caption: str = '', recipe=None) -> DishPhoto:
 def _shopping_lines(menu: Menu) -> list[dict]:
     """Every ingredient the menu needs, scaled to each dish's servings and added up across dishes."""
     lines: OrderedDict[tuple[str, str], dict] = OrderedDict()
-    items = menu.items.select_related('recipe').prefetch_related('recipe__ingredients')
+    items = menu.items.select_related('recipe').prefetch_related('recipe__ingredients', 'dishes__recipe__ingredients')
     for item in items:
-        if not item.recipe:
-            continue
-        factor = item.scale()
-        for ing in item.recipe.ingredients.all():
-            key = (normalize_name(ing.name), normalize_unit(ing.unit))
-            line = lines.setdefault(key, {
-                'name': ing.name.strip(), 'unit': ing.unit.strip(), 'section': ing.section,
-                'low': Decimal(0), 'high': Decimal(0), 'counted': False, 'unmeasured': False, 'used_in': [],
-            })
-            if ing.quantity is None:
-                line['unmeasured'] = True
-            else:
-                line['counted'] = True
-                line['low'] += ing.quantity * factor
-                line['high'] += (ing.quantity_max or ing.quantity) * factor
-            title = item.recipe.title
-            if title not in line['used_in']:
-                line['used_in'].append(title)
+        for recipe in item.recipes():
+            factor = item.scale_for(recipe)
+            for ing in recipe.ingredients.all():
+                key = (normalize_name(ing.name), normalize_unit(ing.unit))
+                line = lines.setdefault(key, {
+                    'name': ing.name.strip(), 'unit': ing.unit.strip(), 'section': ing.section,
+                    'low': Decimal(0), 'high': Decimal(0), 'counted': False, 'unmeasured': False, 'used_in': [],
+                })
+                if ing.quantity is None:
+                    line['unmeasured'] = True
+                else:
+                    line['counted'] = True
+                    line['low'] += ing.quantity * factor
+                    line['high'] += (ing.quantity_max or ing.quantity) * factor
+                title = recipe.title
+                if title not in line['used_in']:
+                    line['used_in'].append(title)
     result = []
     for line in lines.values():
         amount = ''
@@ -110,7 +109,7 @@ def send_menu(menu: Menu, recipients: list[str]) -> int:
     site = SiteSettings.load()
     context = {
         'menu': menu,
-        'items': menu.items.select_related('recipe__photo', 'photo'),
+        'items': menu.items.select_related('recipe__photo', 'photo', 'meal').prefetch_related('dishes__recipe__photo'),
         'site': site,
         'menu_url': menu.client_url(),
     }

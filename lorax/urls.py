@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
 
+from kitchen import meal_views as m
 from kitchen import views as v
 from kitchen import website_views as w
 from lorax.urls_common import common_patterns
@@ -31,10 +32,13 @@ urlpatterns = [
     path('menus/<int:pk>/delete/', v.menu_delete, name='menu_delete'),
     path('menus/<int:pk>/duplicate/', v.menu_duplicate, name='menu_duplicate'),
     path('menus/<int:pk>/items/add/', v.menu_item_add, name='menu_item_add'),
+    path('menus/<int:pk>/meals/add/', m.menu_meal_add, name='menu_meal_add'),
     path('menus/<int:pk>/send/', v.menu_send, name='menu_send'),
     path('menus/<int:pk>/shopping/', v.menu_shopping, name='menu_shopping'),
     path('dishes/<int:pk>/', v.menu_item_edit, name='menu_item_edit'),
     path('dishes/<int:pk>/move/<str:direction>/', v.menu_item_move, name='menu_item_move'),
+    path('dishes/<int:pk>/dishes/', m.menu_item_dish, name='menu_item_dish'),
+    path('dishes/<int:pk>/save-meal/', m.menu_item_save_meal, name='menu_item_save_meal'),
     path('shopping/<int:pk>/toggle/', v.shopping_toggle, name='shopping_toggle'),
     path('shopping/<int:pk>/delete/', v.shopping_delete, name='shopping_delete'),
 
@@ -45,6 +49,11 @@ urlpatterns = [
     path('recipes/<int:pk>/archive/', v.recipe_archive, name='recipe_archive'),
     path('recipes/<int:pk>/photos/', v.recipe_photo_upload, name='recipe_photo_upload'),
     path('recipes/<int:pk>/photo/', v.recipe_set_photo, name='recipe_set_photo'),
+
+    path('meals/', m.meals, name='meals'),
+    path('meals/new/', m.meal_new, name='meal_new'),
+    path('meals/<int:pk>/', m.meal, name='meal'),
+    path('meals/<int:pk>/dishes/', m.meal_dish, name='meal_dish'),
 
     path('photos/', v.photos, name='photos'),
     path('photos/<int:pk>/', v.photo_edit, name='photo_edit'),
@@ -57,4 +66,5 @@ urlpatterns = [
     path('admin/options/<int:pk>/', v.manage_option, name='manage_option'),
     path('admin/categories/<int:pk>/', v.manage_category, name='manage_category'),
     path('admin/access/<int:pk>/', v.manage_user, name='manage_user'),
+    path('admin/recipe-categories/<int:pk>/', v.manage_recipe_category, name='manage_recipe_category'),
 ] + common_patterns

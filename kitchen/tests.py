@@ -12,8 +12,8 @@ from PIL import Image
 
 from kitchen import importer
 from kitchen.models import (
-    AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Inquiry, Menu, MenuFeedback,
-    MenuItem, PreferenceCategory, PreferenceOption, Recipe, Service, ShoppingItem, SiteSettings, Step,
+    AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Inquiry, Meal, MealDish, Menu,
+    MenuFeedback, MenuItem, MenuItemDish, PreferenceCategory, RecipeCategory, PreferenceOption, Recipe, Service, ShoppingItem, SiteSettings, Step,
 )
 from kitchen.quantities import format_amount, normalize_name, normalize_unit, parse_amount
 from kitchen.services import rebuild_shopping_list
@@ -187,7 +187,7 @@ def fake_parse_response(draft=None, stop_reason='end_turn'):
 
 DRAFT = importer.RecipeDraft(
     found=True, problem='', title='Weeknight Chili', description='Hearty and quick.', servings=6,
-    prep_minutes=15, cook_minutes=40, tags=['dinner', 'beef'],
+    prep_minutes=15, cook_minutes=40, tags=['dinner', 'beef'], categories=['main', 'Not a category'],
     ingredients=[
         importer.IngredientDraft(quantity=1.5, quantity_max=None, unit='lb', name='ground beef', note='',
                                  section='meat'),
@@ -214,7 +214,9 @@ class ImporterTests(SignedInTestCase):
         self.assertEqual(recipe.ingredients.count(), 2)
         self.assertEqual(recipe.ingredients.get(name='garlic').quantity_max, Decimal('3'))
         self.assertEqual(recipe.steps.count(), 2)
+        self.assertEqual([c.name for c in recipe.categories.all()], ['Main'])
         kwargs = client.beta.messages.parse.call_args.kwargs
+        self.assertIn('Recipe categories in this kitchen: Main, Side', kwargs['messages'][0]['content'][-1]['text'])
         self.assertEqual(kwargs['output_format'], importer.RecipeDraft)
         self.assertEqual(kwargs['fallbacks'], 'default')
 
@@ -223,7 +225,7 @@ class ImporterTests(SignedInTestCase):
         with patcher:
             self.client.post(reverse('recipe_new'), {'mode': 'photos', 'photos': [jpeg_upload(), jpeg_upload('p2.jpg')]})
         content = client.beta.messages.parse.call_args.kwargs['messages'][0]['content']
-        self.assertEqual([c['type'] for c in content], ['image', 'image', 'text'])
+        self.assertEqual([c['type'] for c in content], ['image', 'image', 'text', 'text'])
         self.assertTrue(Recipe.objects.filter(source_note='Imported from photos').exists())
 
     def test_not_a_recipe(self):
@@ -556,3 +558,138 @@ class ProseFilterTests(TestCase):
         self.assertEqual(prose('Hi <b>\nthere\n\n- one\n- two & three'),
                          '<p>Hi &lt;b&gt;<br>there</p><ul><li>one</li><li>two &amp; three</li></ul>')
         self.assertEqual(prose(''), '')
+
+
+class MealTests(SignedInTestCase):
+    def setUp(self):
+        super().setUp()
+        main, side = RecipeCategory.objects.get(name='Main'), RecipeCategory.objects.get(name='Side')
+        self.chicken = Recipe.objects.create(title='Lemon chicken', servings=4)
+        self.chicken.categories.add(main)
+        Ingredient.objects.create(recipe=self.chicken, name='chicken thighs', quantity=2, unit='lb', section='meat')
+        Ingredient.objects.create(recipe=self.chicken, name='lemon', quantity=1, section='produce')
+        self.rice = Recipe.objects.create(title='Rice pilaf', servings=8)
+        self.rice.categories.add(side)
+        Ingredient.objects.create(recipe=self.rice, name='rice', quantity=2, unit='cup', section='pantry')
+        Ingredient.objects.create(recipe=self.rice, name='lemon', quantity=1, section='produce')
+        self.beans = Recipe.objects.create(title='Green beans', servings=4)
+        self.beans.categories.add(side)
+        self.salad = Recipe.objects.create(title='Grain salad', servings=4)
+        self.salad.categories.add(main, side)
+        self.household = Household.objects.create(name='Smiths', default_servings=4)
+        self.menu = Menu.objects.create(household=self.household, title='Week 1')
+
+    def build_meal(self):
+        response = self.client.post(reverse('meal_new'), {'recipe': self.chicken.pk})
+        meal = Meal.objects.get()
+        self.assertRedirects(response, meal.get_absolute_url())
+        for recipe in (self.rice, self.beans):
+            self.client.post(reverse('meal_dish', args=[meal.pk]), {'action': 'add', 'recipe': recipe.pk})
+        return meal
+
+    def test_build_and_rearrange_meal(self):
+        meal = self.build_meal()
+        self.assertEqual(meal.display_name(), 'Lemon chicken with Rice pilaf and Green beans')
+        beans = meal.dishes.get(recipe=self.beans)
+        self.client.post(reverse('meal_dish', args=[meal.pk]), {'action': 'up', 'dish': beans.pk})
+        self.assertEqual(meal.recipes(), [self.chicken, self.beans, self.rice])
+        self.client.post(reverse('meal_dish', args=[meal.pk]),
+                         {'action': 'swap', 'dish': beans.pk, 'recipe': self.salad.pk})
+        self.client.post(reverse('meal_dish', args=[meal.pk]),
+                         {'action': 'remove', 'dish': meal.dishes.get(recipe=self.rice).pk})
+        self.assertEqual(meal.recipes(), [self.chicken, self.salad])
+        self.client.post(meal.get_absolute_url(), {'name': 'Sunday supper', 'description': 'Bright and easy.'})
+        meal.refresh_from_db()
+        self.assertEqual(meal.display_name(), 'Sunday supper')
+
+    def test_builder_groups_recipes_by_category(self):
+        meal = self.build_meal()
+        page = self.client.get(meal.get_absolute_url()).content.decode()
+        main_group = page[page.index('<optgroup label="Main">'):]
+        main_group = main_group[:main_group.index('</optgroup>')]
+        side_group = page[page.index('<optgroup label="Side">'):]
+        side_group = side_group[:side_group.index('</optgroup>')]
+        self.assertIn('Grain salad', main_group)
+        self.assertIn('Grain salad', side_group)  # in both categories
+        self.assertNotIn('Rice pilaf', main_group)
+
+    def test_recipes_filter_by_category(self):
+        side = RecipeCategory.objects.get(name='Side')
+        page = self.client.get(reverse('recipes') + f'?category={side.pk}')
+        self.assertContains(page, 'Rice pilaf')
+        self.assertNotContains(page, 'Lemon chicken</h3>')
+
+    def test_meal_on_menu_copies_and_swaps_without_touching_saved_meal(self):
+        meal = self.build_meal()
+        meal.name = 'Lemon chicken dinner'
+        meal.save()
+        self.client.post(reverse('menu_meal_add', args=[self.menu.pk]),
+                         {'meal-meal': meal.pk, 'meal-servings': 8, 'meal-course': 'Dinner'})
+        item = self.menu.items.get()
+        self.assertEqual(item.meal, meal)
+        self.assertEqual(item.display_title(), 'Lemon chicken dinner')
+        self.assertEqual(item.recipes(), [self.chicken, self.rice, self.beans])
+
+        beans = item.dishes.get(recipe=self.beans)
+        self.client.post(reverse('menu_item_dish', args=[item.pk]),
+                         {'action': 'swap', 'dish': beans.pk, 'recipe': self.salad.pk})
+        self.assertEqual(item.recipes(), [self.chicken, self.rice, self.salad])
+        self.assertEqual(meal.recipes(), [self.chicken, self.rice, self.beans])  # saved meal unchanged
+
+        # Shopping list: every dish, each scaled to 8 servings; lemons add up across dishes.
+        rebuild_shopping_list(self.menu)
+        lines = {i.name: i for i in self.menu.shopping_items.all()}
+        self.assertEqual(lines['chicken thighs'].amount, '4 lb')
+        self.assertEqual(lines['rice'].amount, '2 cup')
+        self.assertEqual(lines['lemon'].amount, '3')
+        self.assertEqual(lines['lemon'].used_in, 'Lemon chicken, Rice pilaf')
+
+        client_page = self.client.get(self.menu.client_path())
+        self.assertContains(client_page, 'Lemon chicken dinner')
+        self.assertContains(client_page, '<li>Grain salad</li>', html=True)
+
+        self.client.post(reverse('menu_duplicate', args=[self.menu.pk]))
+        copy = Menu.objects.exclude(pk=self.menu.pk).get()
+        self.assertEqual(copy.items.get().recipes(), [self.chicken, self.rice, self.salad])
+
+        with self.settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend'):
+            from kitchen.services import send_menu
+            send_menu(self.menu, ['client@example.com'])
+        self.assertIn('Lemon chicken · Rice pilaf · Grain salad', mail.outbox[0].body)
+        self.assertIn('Lemon chicken · Rice pilaf · Grain salad', mail.outbox[0].alternatives[0][0])
+
+        self.client.post(reverse('menu_item_save_meal', args=[item.pk]))
+        self.assertEqual(Meal.objects.order_by('-pk').first().recipes(), [self.chicken, self.rice, self.salad])
+
+    def test_single_dish_becomes_meal_when_a_side_is_added(self):
+        item = MenuItem.objects.create(menu=self.menu, recipe=self.chicken, servings=4)
+        self.client.post(reverse('menu_item_dish', args=[item.pk]), {'action': 'add', 'recipe': self.rice.pk})
+        item.refresh_from_db()
+        self.assertIsNone(item.recipe)
+        self.assertEqual(item.recipes(), [self.chicken, self.rice])
+        self.assertEqual(item.display_title(), 'Lemon chicken with Rice pilaf')
+        self.assertEqual(self.client.get(reverse('menu_item_edit', args=[item.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse('menu', args=[self.menu.pk])).status_code, 200)
+        response = self.client.post(reverse('menu_item_edit', args=[item.pk]),
+                                    {'servings': 6, 'title': '', 'description': '', 'course': '', 'date': ''})
+        self.assertEqual(response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.servings, 6)
+
+    def test_admin_manages_recipe_categories(self):
+        self.client.post(reverse('manage'), {'action': 'recipe_category', 'rc-name': 'Appetizer', 'rc-order': 20})
+        category = RecipeCategory.objects.get(name='Appetizer')
+        self.client.post(reverse('manage_recipe_category', args=[category.pk]),
+                         {f'rc{category.pk}-name': 'Starter', f'rc{category.pk}-order': 1})
+        category.refresh_from_db()
+        self.assertEqual(category.name, 'Starter')
+        self.client.post(reverse('manage_recipe_category', args=[category.pk]), {'action': 'delete'})
+        self.assertFalse(RecipeCategory.objects.filter(pk=category.pk).exists())
+
+    def test_pages_render(self):
+        meal = self.build_meal()
+        for url in [reverse('meals'), reverse('meals') + '?category=1', meal.get_absolute_url(),
+                    self.chicken.get_absolute_url(), reverse('recipe_edit', args=[self.chicken.pk]),
+                    reverse('menu', args=[self.menu.pk]), reverse('manage')]:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        self.assertContains(self.client.get(self.chicken.get_absolute_url()), 'Make a meal with this')

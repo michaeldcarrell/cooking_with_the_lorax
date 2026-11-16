@@ -7,6 +7,7 @@ NAV_SECTIONS = {
     'households': 'clients', 'household': 'clients', 'household_edit': 'clients', 'household_preferences': 'clients',
     'menu': 'clients', 'menu_shopping': 'clients', 'menu_send': 'clients', 'menu_item_edit': 'clients',
     'recipes': 'recipes', 'recipe': 'recipes', 'recipe_new': 'recipes', 'recipe_edit': 'recipes',
+    'meals': 'meals', 'meal': 'meals',
     'photos': 'photos', 'photo_edit': 'photos',
     'website': 'website',
     'manage': 'manage',

@@ -1,0 +1,6 @@
+{# A recipe picker grouped by category. Params: groups, select_id (+ optional id_suffix), name (default "recipe"), selected (recipe pk), label #}
+<label class="sr-only" for="{{ select_id }}{{ id_suffix }}">{{ label|default:"Recipe" }}</label>
+<select id="{{ select_id }}{{ id_suffix }}" name="{{ name|default:'recipe' }}" required>
+  <option value="">{{ label|default:"Choose a recipe" }}</option>
+  {% for group, recipes in groups %}<optgroup label="{{ group }}">{% for r in recipes %}<option value="{{ r.pk }}"{% if r.pk == selected %} selected{% endif %}>{{ r.title }}</option>{% endfor %}</optgroup>{% endfor %}
+</select>

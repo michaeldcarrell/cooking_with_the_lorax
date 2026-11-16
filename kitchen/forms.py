@@ -1,8 +1,8 @@
 from django import forms
 
 from kitchen.models import (
-    AllowedUser, Contact, DishPhoto, Household, Inquiry, Menu, MenuItem, PreferenceCategory, PreferenceOption,
-    Recipe, Service, SiteSettings,
+    AllowedUser, Contact, DishPhoto, Household, Inquiry, Meal, Menu, MenuItem, PreferenceCategory, PreferenceOption,
+    Recipe, RecipeCategory, Service, SiteSettings,
 )
 
 DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
@@ -38,9 +38,9 @@ class NoteForm(forms.Form):
 class RecipeForm(forms.ModelForm):
     class Meta:
         model = Recipe
-        fields = ['title', 'description', 'servings', 'prep_minutes', 'cook_minutes', 'tags', 'chef_notes',
-                  'source_url', 'photo']
-        widgets = {'description': forms.Textarea(attrs={'rows': 2}), 'chef_notes': forms.Textarea(attrs={'rows': 3}),
+        fields = ['title', 'description', 'servings', 'prep_minutes', 'cook_minutes', 'categories', 'tags',
+                  'chef_notes', 'source_url', 'photo']
+        widgets = {'categories': forms.CheckboxSelectMultiple(attrs={'class': 'check-row'}),'description': forms.Textarea(attrs={'rows': 2}), 'chef_notes': forms.Textarea(attrs={'rows': 3}),
                    # Shown as removable badges by static/js/app.js; still saved as comma-separated text.
                    'tags': forms.TextInput(attrs={'data-tag-input': 'tag-options'})}
         labels = {'prep_minutes': 'Prep (min)', 'cook_minutes': 'Cook (min)', 'source_url': 'Source link'}
@@ -89,12 +89,45 @@ class MenuItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['recipe'].queryset = Recipe.objects.filter(archived=False)
         self.fields['photo'].queryset = DishPhoto.objects.defer('image')
+        if self.instance.pk and self.instance.is_meal():
+            # A meal's dishes are edited on their own; the single-recipe field doesn't apply.
+            del self.fields['recipe']
 
     def clean(self):
         data = super().clean()
-        if not data.get('recipe') and not data.get('title'):
+        if 'recipe' in self.fields and not data.get('recipe') and not data.get('title'):
             raise forms.ValidationError('Pick a recipe or give the dish a title.')
         return data
+
+
+class MenuMealForm(forms.Form):
+    """Add a saved meal to a menu."""
+    meal = forms.ModelChoiceField(queryset=Meal.objects.none(), empty_label='Choose a meal')
+    date = forms.DateField(required=False, widget=DATE)
+    course = forms.CharField(required=False, max_length=60, widget=forms.TextInput(attrs={'list': 'course-options'}))
+    servings = forms.IntegerField(min_value=1, max_value=500)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['meal'].queryset = Meal.objects.filter(archived=False).prefetch_related('dishes__recipe')
+        self.fields['meal'].label_from_instance = lambda meal: meal.display_name()
+
+
+class MealForm(forms.ModelForm):
+    class Meta:
+        model = Meal
+        fields = ['name', 'description', 'photo', 'chef_notes', 'archived']
+        widgets = {'description': forms.Textarea(attrs={'rows': 2}), 'chef_notes': forms.Textarea(attrs={'rows': 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['photo'].queryset = DishPhoto.objects.defer('image')
+
+
+class RecipeCategoryForm(forms.ModelForm):
+    class Meta:
+        model = RecipeCategory
+        fields = ['name', 'order']
 
 
 class SendMenuForm(forms.Form):

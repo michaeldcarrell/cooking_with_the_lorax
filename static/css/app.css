@@ -256,3 +256,23 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 .empty { text-align: center; color: var(--muted); padding: 28px 12px; }
 .empty .btn { margin-top: 10px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- categories and meals --- */
+.chip.cat { background: transparent; border: 1px solid var(--accent); color: var(--accent); text-decoration: none; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 18px; }
+.filter-chips a { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-size: 14px; background: var(--surface); }
+.filter-chips a:hover { border-color: var(--accent); }
+.filter-chips a[aria-current="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.checks ul:has(.check-row) { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.meal-dishes { list-style: none; padding: 0; margin: 4px 0 0; }
+.meal-dishes li { padding: 1px 0; }
+.meal-dish { display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.meal-dish:first-of-type { border-top: 0; padding-top: 0; }
+.meal-dish .thumb { width: 72px; height: 54px; border-radius: 8px; object-fit: cover; background: var(--surface-2); }
+.meal-dish .meta { margin: 2px 0; }
+.meal-dish .actions { display: flex; gap: 4px; }
+.meal-dish select { max-width: 260px; }
+@media (max-width: 560px) { .meal-dish { grid-template-columns: 1fr auto; } .meal-dish .thumb { display: none; } }
+.add-dish { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.add-dish h3 { margin-bottom: 8px; }
+.add-dish select { max-width: 340px; }

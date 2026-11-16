@@ -8,6 +8,12 @@
     <a class="btn" href="{% url 'recipe_new' %}">Add a recipe</a>
   </div>
 </div>
+{% if categories %}
+<nav class="filter-chips" aria-label="Filter by category">
+  <a href="?{% if query %}q={{ query|urlencode }}{% endif %}{% if show_archived %}&amp;archived=1{% endif %}" {% if not category %}aria-current="true"{% endif %}>All</a>
+  {% for c in categories %}<a href="?category={{ c.pk }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}{% if show_archived %}&amp;archived=1{% endif %}" {% if category == c.pk|stringformat:"d" %}aria-current="true"{% endif %}>{{ c.name }}</a>{% endfor %}
+</nav>
+{% endif %}
 {% if recipes %}
 <div class="tile-grid">
   {% for r in recipes %}
@@ -15,12 +21,12 @@
     <div class="ph">{% if r.photo %}<img src="{{ r.photo.url }}" alt="" loading="lazy">{% else %}<span>{{ r.title|truncatechars:28 }}</span>{% endif %}</div>
     <div class="body"><h3>{{ r.title }}</h3>
       <div class="small muted">Serves {{ r.servings }}{% if r.total_minutes %} · {{ r.total_minutes }} min{% endif %}</div>
-      {% if r.tag_list %}<div style="margin-top:6px">{% for t in r.tag_list|slice:":3" %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}</div>
+      {% with cats=r.categories.all %}{% if cats or r.tag_list %}<div style="margin-top:6px">{% for c in cats %}<span class="chip cat">{{ c.name }}</span>{% endfor %}{% for t in r.tag_list|slice:":2" %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}{% endwith %}</div>
   </a>
   {% endfor %}
 </div>
 {% else %}
-<div class="card empty">{% if query %}<p>No recipes match “{{ query }}”.</p>{% else %}<p>No recipes yet. Import one from a website, a photo of a cookbook page, or type it in.</p><a class="btn" href="{% url 'recipe_new' %}">Add a recipe</a>{% endif %}</div>
+<div class="card empty">{% if query or category %}<p>No recipes match{% if query %} “{{ query }}”{% endif %}.</p>{% else %}<p>No recipes yet. Import one from a website, a photo of a cookbook page, or type it in.</p><a class="btn" href="{% url 'recipe_new' %}">Add a recipe</a>{% endif %}</div>
 {% endif %}
 <p class="small" style="margin-top:20px">{% if show_archived %}<a href="{% url 'recipes' %}">Back to recipes</a>{% else %}<a href="?archived=1">Archived recipes</a>{% endif %}</p>
 {% endblock %}

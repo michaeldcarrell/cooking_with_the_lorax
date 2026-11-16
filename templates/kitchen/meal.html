@@ -1,0 +1,29 @@
+{% extends "_layout.html" %}
+{% block title %}{{ meal.display_name }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{% url 'meals' %}">Meals</a></div>
+<div class="page-head"><h1>{{ meal.display_name }}{% if meal.archived %} <span class="status">Archived</span>{% endif %}</h1></div>
+<div class="grid side">
+  <div class="stack">
+    <section class="card" id="dishes" aria-labelledby="dishes-h">
+      <h2 id="dishes-h">Dishes</h2>
+      {% url 'meal_dish' meal.pk as action_url %}
+      {% include "kitchen/_dish_rows.html" with action_url=action_url %}
+    </section>
+    {% if used_on %}
+    <section class="card" aria-labelledby="used-h">
+      <h2 id="used-h">On menus</h2>
+      <ul class="list">{% for item in used_on %}<li><a href="{% url 'menu' item.menu_id %}">{{ item.menu.title }}</a> <span class="muted small">· {{ item.menu.household.name }}{% if item.date %} · {{ item.date|date:"M j" }}{% endif %}</span></li>{% endfor %}</ul>
+      <p class="small muted">Changing this meal doesn't change menus it's already on.</p>
+    </section>
+    {% endif %}
+  </div>
+  <form method="post" class="card">{% csrf_token %}
+    <h2>Details</h2>
+    {% include "_form_errors.html" %}
+    {% for field in form %}{% include "_field.html" %}{% endfor %}
+    <div class="row"><button class="btn" type="submit">Save</button><span class="spacer"></span>
+      <button class="btn danger small" type="submit" name="delete" value="1" formnovalidate data-confirm="Delete this meal? Menus that use it keep their dishes.">Delete</button></div>
+  </form>
+</div>
+{% endblock %}

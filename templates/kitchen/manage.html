@@ -62,6 +62,31 @@
       </form>
     </section>
 
+    <section class="card" id="recipe-categories" aria-labelledby="rc-h">
+      <h2 id="rc-h">Recipe categories</h2>
+      <p class="small muted">What kind of dish a recipe is. Used to filter recipes and to group them when mixing and matching meals.</p>
+      <table class="plain">
+        {% for c in recipe_categories %}
+        <tr>
+          <td>{{ c.name }} <span class="muted small">· {{ c.used }} recipe{{ c.used|pluralize }}</span></td>
+          <td style="text-align:right;white-space:nowrap">
+            <details class="more small" style="display:inline-block"><summary>Edit</summary>
+              <form method="post" action="{% url 'manage_recipe_category' c.pk %}" class="row" style="margin-top:6px">{% csrf_token %}
+                <label class="sr-only" for="rc{{ c.pk }}-name">Name</label><input id="rc{{ c.pk }}-name" name="rc{{ c.pk }}-name" value="{{ c.name }}" required style="width:140px">
+                <label class="sr-only" for="rc{{ c.pk }}-order">Order</label><input id="rc{{ c.pk }}-order" type="number" min="0" name="rc{{ c.pk }}-order" value="{{ c.order }}" style="width:70px">
+                <button class="btn small" type="submit">Save</button></form>
+            </details>
+            <form method="post" action="{% url 'manage_recipe_category' c.pk %}" class="inline" data-confirm="Delete the {{ c.name }} category? Recipes stay; they just lose this category.">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger small" type="submit">Delete</button></form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      <form method="post" style="margin-top:14px">{% csrf_token %}<input type="hidden" name="action" value="recipe_category">
+        <div class="fields cols-2">{% for field in recipe_category_form %}{% include "_field.html" %}{% endfor %}</div>
+        <button class="btn small" type="submit">Add category</button>
+      </form>
+    </section>
+
     <section class="card" id="access" aria-labelledby="acc-h">
       <h2 id="acc-h">Who can sign in</h2>
       <p class="small muted">Google accounts that can use this site. Admins can also open this page.</p>

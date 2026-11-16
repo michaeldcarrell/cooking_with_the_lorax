@@ -1,0 +1,34 @@
+{% extends "_layout.html" %}
+{% block title %}Meals{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% if show_archived %}Archived meals{% else %}Meals{% endif %}</h1>
+    <p class="muted" style="margin:0">Mix and match recipes, like a main with two sides, and reuse them on menus.</p></div>
+  <div class="row">
+    <form method="get" role="search" class="row"><label class="sr-only" for="q">Search meals</label><input id="q" type="search" name="q" value="{{ query }}" placeholder="Search meals or dishes" style="width:240px">{% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}{% if show_archived %}<input type="hidden" name="archived" value="1">{% endif %}<button class="btn secondary" type="submit">Search</button></form>
+    <form method="post" action="{% url 'meal_new' %}" class="inline">{% csrf_token %}<button class="btn" type="submit">New meal</button></form>
+  </div>
+</div>
+{% if categories %}
+<nav class="filter-chips" aria-label="Filter by a dish category">
+  <a href="?{% if query %}q={{ query|urlencode }}{% endif %}" {% if not category %}aria-current="true"{% endif %}>All</a>
+  {% for c in categories %}<a href="?category={{ c.pk }}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if category == c.pk|stringformat:"d" %}aria-current="true"{% endif %}>Has a {{ c.name|lower }}</a>{% endfor %}
+</nav>
+{% endif %}
+{% if meals %}
+<div class="tile-grid">
+  {% for meal in meals %}
+  <a class="tile" href="{% url 'meal' meal.pk %}">
+    {% with photo=meal.display_photo %}<div class="ph">{% if photo %}<img src="{{ photo.url }}" alt="" loading="lazy">{% else %}<span>{{ meal.display_name|truncatechars:28 }}</span>{% endif %}</div>{% endwith %}
+    <div class="body"><h3>{{ meal.display_name }}</h3>
+      <ul class="meal-dishes small">{% for d in meal.dishes.all %}<li>{{ d.recipe.title }}{% for c in d.recipe.categories.all|slice:":1" %} <span class="muted">· {{ c.name }}</span>{% endfor %}</li>{% empty %}<li class="muted">No dishes yet</li>{% endfor %}</ul>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">{% if query or category %}<p>No meals match.</p>{% else %}<p>No meals yet. Start one here, or from a recipe with “Make a meal with this”.</p>
+  <form method="post" action="{% url 'meal_new' %}">{% csrf_token %}<button class="btn" type="submit">New meal</button></form>{% endif %}</div>
+{% endif %}
+<p class="small" style="margin-top:20px">{% if show_archived %}<a href="{% url 'meals' %}">Back to meals</a>{% else %}<a href="?archived=1">Archived meals</a>{% endif %}</p>
+{% endblock %}

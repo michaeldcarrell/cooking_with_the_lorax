@@ -10,6 +10,7 @@
       {% include "_field.html" with field=form.title %}
       {% include "_field.html" with field=form.description %}
       <div class="fields cols-3">{% include "_field.html" with field=form.servings %}{% include "_field.html" with field=form.prep_minutes %}{% include "_field.html" with field=form.cook_minutes %}</div>
+      {% include "_field.html" with field=form.categories %}
       {% include "_field.html" with field=form.tags %}
       <datalist id="tag-options">{% for t in all_tags %}<option value="{{ t }}">{% endfor %}</datalist>
     </section>

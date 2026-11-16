@@ -24,7 +24,10 @@
           {% with photo=item.display_photo %}{% if photo %}<img class="thumb" src="{{ photo.url }}" alt="">{% else %}<div class="thumb" aria-hidden="true"></div>{% endif %}{% endwith %}
           <div>
             <div><strong>{{ item.display_title }}</strong></div>
-            <div class="meta">{% if item.course %}{{ item.course }} · {% endif %}serves {{ item.servings }}{% if item.recipe %} · <a href="{% url 'recipe' item.recipe_id %}?servings={{ item.servings }}">recipe</a>{% else %} · no recipe (not on the shopping list){% endif %}</div>
+            {% with dishes=item.dish_list %}
+            {% if dishes %}<div class="meta">{% for d in dishes %}<a href="{% url 'recipe' d.recipe_id %}?servings={{ item.servings }}">{{ d.recipe.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+            <div class="meta">{% if item.course %}{{ item.course }} · {% endif %}serves {{ item.servings }}{% if item.recipe %} · <a href="{% url 'recipe' item.recipe_id %}?servings={{ item.servings }}">recipe</a>{% elif dishes %} · meal{% else %} · no recipe (not on the shopping list){% endif %}</div>
+            {% endwith %}
           </div>
           <div class="actions">
             <form method="post" action="{% url 'menu_item_move' item.pk 'up' %}" class="inline">{% csrf_token %}<button class="icon-btn" type="submit" aria-label="Move {{ item.display_title }} up" title="Move up">↑</button></form>
@@ -38,7 +41,21 @@
       {% endfor %}
 
       <hr>
-      <h3>Add a dish</h3>
+      <h3>Add a meal</h3>
+      {% if meal_form.fields.meal.queryset %}
+      <form method="post" action="{% url 'menu_meal_add' menu.pk %}">{% csrf_token %}
+        <div class="fields cols-3">
+          {% include "_field.html" with field=meal_form.date %}
+          {% include "_field.html" with field=meal_form.course %}
+          {% include "_field.html" with field=meal_form.servings %}
+        </div>
+        {% include "_field.html" with field=meal_form.meal %}
+        <button class="btn" type="submit">Add meal</button>
+        <span class="small muted" style="margin-left:12px">You can swap its dishes for this menu after adding it.</span>
+      </form>
+      {% else %}<p class="small muted">No saved meals yet. <a href="{% url 'meals' %}">Build one on the Meals page</a>, or add a dish below and add sides to it.</p>{% endif %}
+      <hr>
+      <h3>Add a single dish</h3>
       <form method="post" action="{% url 'menu_item_add' menu.pk %}">{% csrf_token %}
         <div class="fields cols-3">
           {% include "_field.html" with field=item_form.date %}

@@ -15,16 +15,24 @@ from django.views.decorators.http import require_POST
 from kitchen import importer
 from kitchen.forms import (
     AllowedUserForm, CategoryForm, ContactForm, HouseholdForm, MenuForm, MenuItemForm, NewHouseholdForm,
-    NewMenuForm, NoteForm, OptionForm, PhotoEditForm, PhotoUploadForm, RecipeForm, SendMenuForm, SiteSettingsForm,
+    MenuMealForm, NewMenuForm, NoteForm, OptionForm, PhotoEditForm, PhotoUploadForm, RecipeCategoryForm, RecipeForm,
+    SendMenuForm, SiteSettingsForm,
 )
+from kitchen.meal_views import recipe_groups
 from kitchen.models import (
     SECTIONS, STANCES, AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Inquiry, Menu,
-    MenuFeedback, MenuItem, Note, PreferenceCategory, PreferenceOption, Recipe, ShoppingItem, SiteSettings, Step,
+    Meal, MenuFeedback, MenuItem, MenuItemDish, Note, PreferenceCategory, PreferenceOption, Recipe, RecipeCategory,
+    ShoppingItem, SiteSettings, Step,
 )
 from kitchen.quantities import parse_amount
 from kitchen.services import PhotoError, rebuild_shopping_list, save_photo, send_menu
 
 logger = logging.getLogger(__name__)
+
+def menu_items(menu):
+    """A menu's entries with everything the pages and emails show, in a few queries."""
+    return menu.items.select_related('recipe__photo', 'photo', 'meal').prefetch_related('dishes__recipe__photo')
+
 
 COURSE_SUGGESTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Starter', 'Main', 'Side', 'Salad', 'Soup', 'Dessert', 'Snack']
 
@@ -234,10 +242,12 @@ def menu(request, pk):
     next_order = (menu.items.aggregate(m=Max('order'))['m'] or 0) + 1
     item_form = MenuItemForm(initial={'servings': household.default_servings, 'date': menu.starts_on,
                                       'course': 'Dinner'}, prefix='item')
+    meal_form = MenuMealForm(initial={'servings': household.default_servings, 'date': menu.starts_on,
+                                      'course': 'Dinner'}, prefix='meal')
     unread = menu.feedback.filter(read=False)
     response = render(request, 'kitchen/menu.html', {
         'menu': menu, 'household': household, 'form': form, 'item_form': item_form, 'next_order': next_order,
-        'items': menu.items.select_related('recipe__photo', 'photo'),
+        'items': menu_items(menu), 'meal_form': meal_form,
         'feedback': menu.feedback.all(), 'courses': COURSE_SUGGESTIONS,
         'prefs': household.preferences_by_stance(), 'stances': STANCES,
         'pinned_notes': household.notes.filter(pinned=True),
@@ -258,13 +268,14 @@ def menu_delete(request, pk):
 @require_POST
 def menu_duplicate(request, pk):
     menu = get_object_or_404(Menu, pk=pk)
-    items = list(menu.items.all())
-    copy = Menu.objects.create(household=menu.household, title=f'{menu.title} (copy)', intro=menu.intro)
-    MenuItem.objects.bulk_create([
-        MenuItem(menu=copy, order=i.order, course=i.course, recipe=i.recipe, title=i.title,
-                 description=i.description, servings=i.servings, photo=i.photo)
-        for i in items
-    ])
+    items = list(menu.items.prefetch_related('dishes'))
+    with transaction.atomic():
+        copy = Menu.objects.create(household=menu.household, title=f'{menu.title} (copy)', intro=menu.intro)
+        for i in items:
+            new = MenuItem.objects.create(menu=copy, order=i.order, course=i.course, recipe=i.recipe, meal=i.meal,
+                                          title=i.title, description=i.description, servings=i.servings, photo=i.photo)
+            MenuItemDish.objects.bulk_create([MenuItemDish(item=new, recipe_id=d.recipe_id, order=d.order)
+                                              for d in i.dishes.all()])
     messages.success(request, 'Copied. Set the dates for the new menu.')
     return redirect(copy)
 
@@ -285,7 +296,8 @@ def menu_item_add(request, pk):
 
 
 def menu_item_edit(request, pk):
-    item = get_object_or_404(MenuItem.objects.select_related('menu'), pk=pk)
+    item = get_object_or_404(MenuItem.objects.select_related('menu__household', 'meal')
+                             .prefetch_related('dishes__recipe__categories'), pk=pk)
     form = MenuItemForm(request.POST or None, instance=item)
     if request.method == 'POST':
         if request.POST.get('delete'):
@@ -295,7 +307,10 @@ def menu_item_edit(request, pk):
         if form.is_valid():
             form.save()
             return redirect(reverse('menu', args=[item.menu_id]) + '#dishes')
-    return render(request, 'kitchen/menu_item_edit.html', {'item': item, 'form': form, 'courses': COURSE_SUGGESTIONS})
+    return render(request, 'kitchen/menu_item_edit.html', {
+        'item': item, 'form': form, 'courses': COURSE_SUGGESTIONS, 'groups': recipe_groups(),
+        'dishes': item.dish_list(),
+    })
 
 
 @require_POST
@@ -393,11 +408,16 @@ def shopping_delete(request, pk):
 def recipes(request):
     query = request.GET.get('q', '').strip()
     show_archived = request.GET.get('archived') == '1'
-    qs = Recipe.objects.filter(archived=show_archived).select_related('photo').defer('photo__image')
+    category = request.GET.get('category', '')
+    qs = Recipe.objects.filter(archived=show_archived).select_related('photo').defer('photo__image') \
+        .prefetch_related('categories')
+    if category.isdigit():
+        qs = qs.filter(categories=category)
     if query:
         qs = qs.filter(Q(title__icontains=query) | Q(tags__icontains=query) | Q(description__icontains=query) |
                        Q(ingredients__name__icontains=query)).distinct()
-    return render(request, 'kitchen/recipes.html', {'recipes': qs, 'query': query, 'show_archived': show_archived})
+    return render(request, 'kitchen/recipes.html', {'recipes': qs, 'query': query, 'show_archived': show_archived,
+                                                    'category': category, 'categories': RecipeCategory.objects.all()})
 
 
 def recipe(request, pk):
@@ -411,7 +431,9 @@ def recipe(request, pk):
     return render(request, 'kitchen/recipe.html', {
         'recipe': recipe, 'servings': servings, 'ingredients': ingredients, 'steps': recipe.steps.all(),
         'photos': recipe.photos.defer('image'),
-        'used_on': recipe.menu_items.select_related('menu__household').order_by('-menu__starts_on')[:10],
+        'used_on': MenuItem.objects.filter(Q(recipe=recipe) | Q(dishes__recipe=recipe)).distinct()
+                   .select_related('menu__household').order_by('-menu__starts_on')[:10],
+        'meals': Meal.objects.filter(dishes__recipe=recipe, archived=False).distinct().prefetch_related('dishes__recipe'),
     })
 
 
@@ -590,6 +612,7 @@ def manage(request):
     category_form = CategoryForm(prefix='cat')
     option_form = OptionForm(prefix='opt')
     user_form = AllowedUserForm(prefix='user')
+    recipe_category_form = RecipeCategoryForm(prefix='rc', initial={'order': RecipeCategory.objects.count() + 1})
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'site':
@@ -612,19 +635,27 @@ def manage(request):
                 option.save()
                 messages.success(request, f'Added {option.name}.')
                 return redirect(reverse('manage') + f'#cat-{option.category_id}')
+        elif action == 'recipe_category':
+            recipe_category_form = RecipeCategoryForm(request.POST, prefix='rc')
+            if recipe_category_form.is_valid():
+                recipe_category_form.save()
+                messages.success(request, 'Recipe category added.')
+                return redirect(reverse('manage') + '#recipe-categories')
         elif action == 'user':
             user_form = AllowedUserForm(request.POST, prefix='user')
             if user_form.is_valid():
                 user_form.save()
                 messages.success(request, 'Access added.')
                 return redirect(reverse('manage') + '#access')
-        if any(f.errors for f in (site_form, category_form, option_form, user_form)):
+        if any(f.errors for f in (site_form, category_form, option_form, user_form, recipe_category_form)):
             messages.error(request, 'Please fix the errors below.')
     categories = PreferenceCategory.objects.prefetch_related('options').annotate(
         used=Count('options__household_preferences'))
     return render(request, 'kitchen/manage.html', {
         'site_form': site_form, 'category_form': category_form, 'option_form': option_form, 'user_form': user_form,
         'categories': categories, 'allowed_users': AllowedUser.objects.all(),
+        'recipe_category_form': recipe_category_form,
+        'recipe_categories': RecipeCategory.objects.annotate(used=Count('recipes')),
     })
 
 
@@ -669,6 +700,22 @@ def manage_category(request, pk):
 
 @admin_required
 @require_POST
+def manage_recipe_category(request, pk):
+    category = get_object_or_404(RecipeCategory, pk=pk)
+    if request.POST.get('action') == 'delete':
+        category.delete()
+        messages.success(request, f'Deleted {category.name}. Its recipes keep their other categories.')
+    else:
+        form = RecipeCategoryForm(request.POST, instance=category, prefix=f'rc{pk}')
+        if form.is_valid():
+            form.save()
+        else:
+            messages.error(request, ' '.join(e for errors in form.errors.values() for e in errors))
+    return redirect(reverse('manage') + '#recipe-categories')
+
+
+@admin_required
+@require_POST
 def manage_user(request, pk):
     allowed = get_object_or_404(AllowedUser, pk=pk)
     if allowed.pk == request.allowed_user.pk:
@@ -697,7 +744,7 @@ def client_menu(request, token):
             menu.status = 'approved'
             menu.save(update_fields=['status'])
         return redirect(menu.client_path() + '?thanks=1#respond')
-    items = list(menu.items.select_related('recipe__photo', 'photo'))
+    items = list(menu_items(menu))
     days = []
     for item in items:
         if days and days[-1][0] == item.date:

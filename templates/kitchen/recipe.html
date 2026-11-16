@@ -11,9 +11,11 @@
       {% if recipe.cook_minutes %}<span>Cook <strong>{{ recipe.cook_minutes }} min</strong></span>{% endif %}
       <span>Recipe makes <strong>{{ recipe.servings }}</strong></span>
     </div>
+    {% with cats=recipe.categories.all %}{% if cats %}<div style="margin-bottom:6px">{% for c in cats %}<a class="chip cat" href="{% url 'recipes' %}?category={{ c.pk }}">{{ c.name }}</a>{% endfor %}</div>{% endif %}{% endwith %}
     {% if recipe.tag_list %}<div style="margin-bottom:14px">{% for t in recipe.tag_list %}<span class="chip">{{ t }}</span>{% endfor %}</div>{% endif %}
     <div class="row">
       <a class="btn" href="{% url 'recipe_edit' recipe.pk %}">Edit recipe</a>
+      <form method="post" action="{% url 'meal_new' %}" class="inline">{% csrf_token %}<input type="hidden" name="recipe" value="{{ recipe.pk }}"><button class="btn secondary" type="submit">Make a meal with this</button></form>
       <form method="post" action="{% url 'recipe_archive' recipe.pk %}" class="inline">{% csrf_token %}<button class="btn secondary" type="submit">{% if recipe.archived %}Restore{% else %}Archive{% endif %}</button></form>
     </div>
   </div>
@@ -38,6 +40,12 @@
     </section>
   </div>
   <div class="stack">
+    {% if meals %}
+    <section class="card" aria-labelledby="meals-h">
+      <h2 id="meals-h">In meals</h2>
+      <ul class="list">{% for m in meals %}<li><a href="{% url 'meal' m.pk %}">{{ m.display_name }}</a></li>{% endfor %}</ul>
+    </section>
+    {% endif %}
     {% if recipe.chef_notes %}<section class="card"><h2>Chef's notes</h2><p class="small">{{ recipe.chef_notes|linebreaksbr }}</p><p class="small muted">Private: never shown to clients.</p></section>{% endif %}
     <section class="card" aria-labelledby="ph-h">
       <h2 id="ph-h">Photos</h2>

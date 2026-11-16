@@ -17,6 +17,7 @@
     {% with photo=item.display_photo %}{% if photo %}<img src="{{ photo.absolute_url }}" alt="{{ item.display_title }}" width="536" style="display:block;width:100%;max-width:536px;height:auto;border-radius:10px;margin-bottom:12px;">{% endif %}{% endwith %}
     {% if item.course %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#a4502d;font-weight:bold;">{{ item.course }}</div>{% endif %}
     <div style="font-size:21px;margin:4px 0;">{{ item.display_title }}</div>
+    {% with dishes=item.dish_list %}{% if dishes and item.title %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#5d6656;margin:2px 0 6px;">{% for d in dishes %}{{ d.recipe.title }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}{% endwith %}
     {% if item.display_description %}<div style="font-size:16px;line-height:1.5;color:#23291f;">{{ item.display_description }}</div>{% endif %}
     <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#5d6656;margin-top:4px;">Serves {{ item.servings }}</div>
   </td></tr>

@@ -4,7 +4,6 @@ Django settings for Cooking with the Lorax.
 All secrets and deployment-specific values come from the environment (`stack.env`,
 loaded by python-decouple). See README.md for the full list of variable names.
 """
-import sys
 from pathlib import Path
 
 from decouple import Csv, config
@@ -96,24 +95,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "lorax.wsgi.application"
 
-# Host Postgres (192.168.68.78). With no DB_HOST set (local dev / tests) fall back to SQLite.
-if config('DB_HOST', default=''):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": config('DB_NAME', default='cooking_with_the_lorax'),
-            "USER": config('DB_USER'),
-            "PASSWORD": config('DB_PASSWORD'),
-            "HOST": config('DB_HOST'),
-            "PORT": config('DB_PORT', default='5432'),
-        }
+# The home server's Postgres (192.168.68.78). There is no SQLite fallback: tests also run on this
+# server, in a throwaway test_cooking_with_the_lorax database that Django creates and drops.
+if not config('DB_HOST', default=''):
+    raise ImproperlyConfigured('DB_HOST is not set. Add the DB_* variables to stack.env (see README).')
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": config('DB_NAME', default='cooking_with_the_lorax'),
+        "USER": config('DB_USER'),
+        "PASSWORD": config('DB_PASSWORD'),
+        "HOST": config('DB_HOST'),
+        "PORT": config('DB_PORT', default='5432'),
     }
-elif not DEBUG and 'test' not in sys.argv:
-    # SQLite would live inside the container and be wiped on every redeploy, taking clients,
-    # recipes and photos with it. Refuse to start rather than run on it in production.
-    raise ImproperlyConfigured('DB_HOST is not set. Add the DB_* variables to the stack (see README).')
-else:
-    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
+}
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = config('TIME_ZONE', default='America/Denver')

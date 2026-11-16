@@ -62,7 +62,10 @@ editor. Server-side refusal fallback is on (`fallbacks: "default"`).
 
 ## Tests
 
+Tests run on the home Postgres server, in a throwaway `test_cooking_with_the_lorax` database that
+Django creates and drops (the `DB_USER` needs permission to create databases). Claude, the web and
+email are mocked.
+
 ```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt
-SECRET_KEY=dev .venv/bin/python manage.py test kitchen   # SQLite; Claude, the web and email are mocked
+docker compose run --rm cooking_with_the_lorax python manage.py test kitchen
 ```

@@ -165,7 +165,7 @@ class AllowedUserForm(forms.ModelForm):
 class WebsiteTextForm(forms.ModelForm):
     class Meta:
         model = SiteSettings
-        fields = ['tagline', 'intro', 'about', 'service_area', 'phone', 'google_tag_id', 'google_ads_conversion']
+        fields = ['tagline', 'intro', 'about', 'service_area', 'offer', 'phone', 'google_tag_id', 'google_ads_conversion']
         widgets = {'intro': forms.Textarea(attrs={'rows': 3}), 'about': forms.Textarea(attrs={'rows': 10})}
 
 

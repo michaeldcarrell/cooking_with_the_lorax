@@ -61,6 +61,8 @@ class SiteSettings(models.Model):
     about = models.TextField(
         blank=True, help_text='The About page. Leave a blank line between paragraphs.')
     service_area = models.CharField(max_length=200, blank=True, help_text='e.g. Denver and the west suburbs')
+    offer = models.CharField(max_length=200, blank=True,
+                             help_text='A short offer shown on the home, Services and Contact pages. Leave blank to hide it.')
     phone = models.CharField(max_length=40, blank=True, help_text='Shown on the website. Leave blank to hide it.')
     google_tag_id = models.CharField(
         max_length=40, blank=True, verbose_name='Google tag ID',
@@ -388,7 +390,9 @@ class Service(models.Model):
     """Something Lori offers, listed on the public website's Services page."""
     name = models.CharField(max_length=120)
     summary = models.CharField(max_length=300, help_text='One line, shown on the home page.')
-    details = models.TextField(blank=True, help_text='The Services page. Leave a blank line between paragraphs.')
+    details = models.TextField(
+        blank=True, help_text='The Services page. Leave a blank line between paragraphs. '
+                              'Start lines with "- " to make a bulleted list.')
     price_note = models.CharField(max_length=120, blank=True, help_text='Optional, e.g. "From $X per week"')
     order = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True, help_text='Hidden from the website when off.')

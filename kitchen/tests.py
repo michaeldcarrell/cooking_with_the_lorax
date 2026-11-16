@@ -447,7 +447,11 @@ class WebsiteTests(TestCase):
             response = self.public(path)
             self.assertEqual(response.status_code, 200, path)
             self.assertNotIn('X-Robots-Tag', response, path)
-        self.assertContains(self.public('/'), 'Weekly meals at home')  # seeded service
+        home = self.public('/')
+        self.assertContains(home, 'Breakfast week packages')  # Lori's services, seeded
+        self.assertNotContains(home, 'Dinner parties')  # starter placeholder removed
+        self.assertContains(home, '25% off for teachers and health care staff')
+        self.assertContains(self.public('/services/'), '<li>Overnight oats ($20 for the week)</li>', html=False)
         self.assertContains(self.public('/sitemap.xml'), f'https://{PUBLIC}/services/')
 
     def test_workspace_host_is_private_and_noindex(self):
@@ -483,12 +487,12 @@ class WebsiteTests(TestCase):
 
     def test_contact_form_saves_and_emails(self):
         response = self.client.post('/contact/', {
-            'name': 'Jo Client', 'email': 'jo@example.com', 'service': 'Weekly meals at home',
+            'name': 'Jo Client', 'email': 'jo@example.com', 'service': 'Meal planning and meal prep',
             'household_size': 4, 'message': 'We need dinners Mon-Thu.',
         }, HTTP_HOST=PUBLIC, secure=True)
         self.assertRedirects(response, '/contact/thanks/', fetch_redirect_response=False)
         inquiry = Inquiry.objects.get()
-        self.assertEqual(inquiry.service, 'Weekly meals at home')
+        self.assertEqual(inquiry.service, 'Meal planning and meal prep')
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].reply_to, ['jo@example.com'])
         self.assertIn('Mon-Thu', mail.outbox[0].body)
@@ -519,28 +523,36 @@ class WebsiteManageTests(SignedInTestCase):
     def test_edit_text_services_and_inquiries(self):
         response = self.client.post(reverse('website'), {
             'action': 'text', 'tagline': 'Dinner, handled.', 'intro': 'Weekly menus.', 'about': 'I cook.',
-            'service_area': 'Denver', 'phone': '', 'google_tag_id': 'not-a-tag', 'google_ads_conversion': '',
+            'service_area': 'Denver', 'offer': '', 'phone': '', 'google_tag_id': 'not-a-tag', 'google_ads_conversion': '',
         })
         self.assertContains(response, 'Looks like AW-123456789')
         self.client.post(reverse('website'), {
             'action': 'text', 'tagline': 'Dinner, handled.', 'intro': 'Weekly menus.', 'about': 'I cook.',
-            'service_area': 'Denver', 'phone': '', 'google_tag_id': 'G-ABC123', 'google_ads_conversion': '',
+            'service_area': 'Denver', 'offer': '', 'phone': '', 'google_tag_id': 'G-ABC123', 'google_ads_conversion': '',
         })
         self.assertEqual(SiteSettings.load().tagline, 'Dinner, handled.')
 
-        self.client.post(reverse('website'), {'action': 'service', 'svc-name': 'Meal prep', 'svc-summary': 'Batch cooking.',
+        self.client.post(reverse('website'), {'action': 'service', 'svc-name': 'Knife skills', 'svc-summary': 'Batch cooking.',
                                               'svc-order': 3, 'svc-active': 'on'})
-        service = Service.objects.get(name='Meal prep')
+        service = Service.objects.get(name='Knife skills')
         self.client.post(reverse('website_service', args=[service.pk]), {
-            f's{service.pk}-name': 'Meal prep', f's{service.pk}-summary': 'Batch cooking.', f's{service.pk}-order': 3})
+            f's{service.pk}-name': 'Knife skills', f's{service.pk}-summary': 'Batch cooking.', f's{service.pk}-order': 3})
         service.refresh_from_db()
         self.assertFalse(service.active)
         page = self.client.get('/services/', HTTP_HOST=PUBLIC)
         self.assertContains(page, 'Denver')
-        self.assertNotContains(page, 'Meal prep')
+        self.assertNotContains(page, 'Knife skills')
 
         inquiry = Inquiry.objects.create(name='Jo', email='jo@example.com', message='Hi')
         self.assertContains(self.client.get(reverse('home')), 'New website inquiries')
         self.client.post(reverse('website_inquiry', args=[inquiry.pk]), {'action': 'toggle'})
         inquiry.refresh_from_db()
         self.assertTrue(inquiry.handled)
+
+
+class ProseFilterTests(TestCase):
+    def test_paragraphs_and_lists(self):
+        from kitchen.templatetags.kitchen import prose
+        self.assertEqual(prose('Hi <b>\nthere\n\n- one\n- two & three'),
+                         '<p>Hi &lt;b&gt;<br>there</p><ul><li>one</li><li>two &amp; three</li></ul>')
+        self.assertEqual(prose(''), '')

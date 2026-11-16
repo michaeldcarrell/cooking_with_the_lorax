@@ -8,6 +8,7 @@
       <p class="c-eyebrow">{{ site.chef_name }} · Private chef{% if site.service_area %} · {{ site.service_area }}{% endif %}</p>
       <h1>{{ site.tagline }}</h1>
       <p class="s-lede">{{ site.intro }}</p>
+      {% include "website/_offer.html" %}
       <div class="row s-hero-cta">
         <a class="btn s-btn-lg" href="{% url 'site_contact' %}">Get in touch</a>
         <a class="btn secondary s-btn-lg" href="{% url 'site_services' %}">See services</a>

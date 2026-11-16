@@ -1,4 +1,5 @@
 {% extends "website/_base.html" %}
+{% load kitchen %}
 {% block title %}Services · {% endblock %}
 {% block og_title %}Services · {{ site.business_name }}{% endblock %}
 {% block content %}
@@ -6,6 +7,7 @@
   <p class="c-eyebrow">Services</p>
   <h1>Cooking for your household.</h1>
   {% if site.service_area %}<p class="s-lede">Serving {{ site.service_area }}.</p>{% endif %}
+  {% include "website/_offer.html" %}
 </div></section>
 <section class="s-section s-tight">
   <div class="s-wrap">
@@ -17,8 +19,8 @@
       </div>
       <div class="s-prose">
         <p class="s-summary">{{ s.summary }}</p>
-        {% if s.details %}{{ s.details|linebreaks }}{% endif %}
-        <a class="btn secondary" href="{% url 'site_contact' %}?service={{ s.name|urlencode }}">Ask about {{ s.name|lower }}</a>
+        {% if s.details %}{{ s.details|prose }}{% endif %}
+        <a class="btn secondary" href="{% url 'site_contact' %}?service={{ s.name|urlencode }}">Ask about this</a>
       </div>
     </article>
     {% empty %}

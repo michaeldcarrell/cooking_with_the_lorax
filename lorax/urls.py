@@ -2,6 +2,10 @@ from django.contrib import admin
 from django.urls import include, path
 
 from kitchen import views as v
+from kitchen import website_views as w
+from lorax.urls_common import common_patterns
+
+# Lori's workspace (CHEF_BASE_URL, and any host other than the public one).
 
 urlpatterns = [
     path('django-admin/', admin.site.urls),
@@ -9,7 +13,7 @@ urlpatterns = [
     path('welcome/', v.welcome, name='welcome'),
     path('welcome/', v.welcome, name='signin'),
     path('signout/', v.sign_out, name='signout'),
-    path('healthz', v.healthz, name='healthz'),
+    path('robots.txt', w.workspace_robots_txt),
     path('', v.home, name='home'),
 
     path('clients/', v.households, name='households'),
@@ -44,14 +48,13 @@ urlpatterns = [
 
     path('photos/', v.photos, name='photos'),
     path('photos/<int:pk>/', v.photo_edit, name='photo_edit'),
-    path('photo/<uuid:token>/', v.photo_file, name='photo_file'),
+
+    path('website/', w.manage_website, name='website'),
+    path('website/services/<int:pk>/', w.manage_service, name='website_service'),
+    path('website/inquiries/<int:pk>/', w.manage_inquiry, name='website_inquiry'),
 
     path('admin/', v.manage, name='manage'),
     path('admin/options/<int:pk>/', v.manage_option, name='manage_option'),
     path('admin/categories/<int:pk>/', v.manage_category, name='manage_category'),
     path('admin/access/<int:pk>/', v.manage_user, name='manage_user'),
-
-    # Client pages: no login, unguessable links.
-    path('m/<uuid:token>/', v.client_menu, name='client_menu'),
-    path('h/<uuid:token>/', v.client_household, name='client_household'),
-]
+] + common_patterns

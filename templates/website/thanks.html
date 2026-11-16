@@ -1,0 +1,11 @@
+{% extends "website/_base.html" %}
+{% block title %}Thank you · {% endblock %}
+{% block head %}<meta name="robots" content="noindex">
+{% if site.google_tag_id and site.google_ads_conversion %}<script>gtag('event', 'conversion', {'send_to': '{{ site.google_ads_conversion }}'});</script>{% endif %}{% endblock %}
+{% block content %}
+<section class="s-page-head s-thanks"><div class="s-wrap">
+  <p class="c-eyebrow">Message sent</p>
+  <h1>Thank you!</h1>
+  <p class="s-lede">I'll be in touch soon. In the meantime, have a look at the <a href="{% url 'site_gallery' %}">gallery</a>.</p>
+</div></section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "website/_base.html" %}
+{% block title %}Services · {% endblock %}
+{% block og_title %}Services · {{ site.business_name }}{% endblock %}
+{% block content %}
+<section class="s-page-head"><div class="s-wrap">
+  <p class="c-eyebrow">Services</p>
+  <h1>Cooking for your household.</h1>
+  {% if site.service_area %}<p class="s-lede">Serving {{ site.service_area }}.</p>{% endif %}
+</div></section>
+<section class="s-section s-tight">
+  <div class="s-wrap">
+    {% for s in services %}
+    <article class="s-service" id="service-{{ s.pk }}">
+      <div>
+        <h2>{{ s.name }}</h2>
+        {% if s.price_note %}<p class="s-price">{{ s.price_note }}</p>{% endif %}
+      </div>
+      <div class="s-prose">
+        <p class="s-summary">{{ s.summary }}</p>
+        {% if s.details %}{{ s.details|linebreaks }}{% endif %}
+        <a class="btn secondary" href="{% url 'site_contact' %}?service={{ s.name|urlencode }}">Ask about {{ s.name|lower }}</a>
+      </div>
+    </article>
+    {% empty %}
+    <p>Get in touch and tell me what you're looking for.</p>
+    {% endfor %}
+  </div>
+</section>
+{% include "website/_cta.html" %}
+{% endblock %}

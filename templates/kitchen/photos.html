@@ -7,7 +7,7 @@
     <h2 id="lib-h" class="sr-only">Photo library</h2>
     {% if photos %}
     <div class="photo-grid">
-      {% for p in photos %}<a href="{% url 'photo_edit' p.pk %}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"><div class="cap">{{ p.caption|default:p.recipe.title|default:"No caption" }}</div></a>{% endfor %}
+      {% for p in photos %}<a href="{% url 'photo_edit' p.pk %}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"><div class="cap">{{ p.label|default:"No caption" }}</div></a>{% endfor %}
     </div>
     {% else %}<p class="empty">No photos yet. Upload photos of your dishes to use them on client menus.</p>{% endif %}
   </section>

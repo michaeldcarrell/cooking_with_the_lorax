@@ -1,0 +1,81 @@
+{% extends "_layout.html" %}
+{% block title %}Website{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Website</h1><p class="muted" style="margin:0">What visitors see at <a href="{{ public_url }}/" target="_blank" rel="noopener">{{ public_url|cut:"https://" }}</a>.</p></div>
+  <a class="btn secondary" href="{{ public_url }}/" target="_blank" rel="noopener">Open the website</a>
+</div>
+<div class="grid side">
+  <div class="stack">
+    <section class="card" id="inquiries" aria-labelledby="inq-h">
+      <h2 id="inq-h">Inquiries</h2>
+      <p class="small muted">Messages from the contact form. Each one is also emailed to {{ site.contact_email }}; reply to that email to answer.</p>
+      {% if inquiries %}
+      <ul class="list">
+        {% for q in inquiries %}
+        <li{% if q.handled %} class="muted"{% endif %}>
+          <div class="list-row">
+            <div><strong>{{ q.name }}</strong> <span class="small">· <a href="mailto:{{ q.email }}">{{ q.email }}</a>{% if q.phone %} · <a href="tel:{{ q.phone }}">{{ q.phone }}</a>{% endif %}</span></div>
+            <span class="small muted">{{ q.created_at|date:"M j, Y g:i a" }}</span>
+          </div>
+          {% if q.service or q.household_size or q.start_date %}<div class="small muted">{% if q.service %}{{ q.service }}{% endif %}{% if q.household_size %} · {{ q.household_size }} people{% endif %}{% if q.start_date %} · starting {{ q.start_date|date:"M j, Y" }}{% endif %}</div>{% endif %}
+          <p style="margin:6px 0">{{ q.message|linebreaksbr }}</p>
+          <div class="row small">
+            <form method="post" action="{% url 'website_inquiry' q.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="action" value="toggle"><button class="linkish" type="submit">{% if q.handled %}Mark as new{% else %}Mark as handled{% endif %}</button></form>
+            <form method="post" action="{% url 'website_inquiry' q.pk %}" class="inline" data-confirm="Delete the inquiry from {{ q.name }}?">{% csrf_token %}<input type="hidden" name="action" value="delete"><button class="linkish danger" type="submit">Delete</button></form>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="empty">No inquiries yet.</p>{% endif %}
+    </section>
+
+    <section class="card" id="services" aria-labelledby="svc-h">
+      <h2 id="svc-h">Services</h2>
+      <p class="small muted">Listed on the home page and the Services page, in order.</p>
+      <ul class="list">
+        {% for s in services %}
+        <li>
+          <div class="list-row"><div><strong>{{ s.name }}</strong>{% if not s.active %} <span class="muted small">(hidden)</span>{% endif %}<div class="small muted">{{ s.summary }}</div></div></div>
+          <details class="more small"><summary>Edit</summary>
+            <form method="post" action="{% url 'website_service' s.pk %}" style="margin-top:8px">{% csrf_token %}
+              {% for field in s.form %}{% include "_field.html" %}{% endfor %}
+              <div class="row"><button class="btn small" type="submit">Save</button><span class="spacer"></span>
+                <button class="linkish danger" type="submit" name="action" value="delete" formnovalidate data-confirm="Delete {{ s.name }}?">Delete</button></div>
+            </form>
+          </details>
+        </li>
+        {% empty %}<li class="muted small">No services yet.</li>
+        {% endfor %}
+      </ul>
+      <hr>
+      <details class="more"{% if service_form.errors %} open{% endif %}><summary>Add a service</summary>
+        <form method="post" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="action" value="service">
+          {% for field in service_form %}{% include "_field.html" %}{% endfor %}
+          <button class="btn small" type="submit">Add service</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="gal-h">
+      <div class="card-head"><h2 id="gal-h">Gallery</h2><a class="small" href="{% url 'photos' %}">All photos</a></div>
+      <p class="small muted">To add a photo to the website, open it on the Photos page and tick “Show on website”.</p>
+      {% if photos %}
+      <div class="photo-grid">
+        {% for p in photos %}<a href="{% url 'photo_edit' p.pk %}"><img src="{{ p.url }}" alt="{{ p.caption }}" loading="lazy"><div class="cap">{{ p.label|default:"No caption" }}</div></a>{% endfor %}
+      </div>
+      {% else %}<p class="empty">No photos on the website yet.</p>{% endif %}
+    </section>
+  </div>
+
+  <section class="card" id="text" aria-labelledby="txt-h">
+    <h2 id="txt-h">Website text</h2>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="text">
+      {% include "_form_errors.html" with form=text_form %}
+      {% for field in text_form %}{% include "_field.html" %}{% endfor %}
+      <button class="btn" type="submit">Save</button>
+    </form>
+    <p class="small muted" style="margin-top:12px">Your name, business name and email come from Business details on the Admin page.</p>
+  </section>
+</div>
+{% endblock %}

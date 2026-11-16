@@ -18,7 +18,7 @@ from kitchen.forms import (
     NewMenuForm, NoteForm, OptionForm, PhotoEditForm, PhotoUploadForm, RecipeForm, SendMenuForm, SiteSettingsForm,
 )
 from kitchen.models import (
-    SECTIONS, STANCES, AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Menu,
+    SECTIONS, STANCES, AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Inquiry, Menu,
     MenuFeedback, MenuItem, Note, PreferenceCategory, PreferenceOption, Recipe, ShoppingItem, SiteSettings, Step,
 )
 from kitchen.quantities import parse_amount
@@ -68,6 +68,7 @@ def home(request):
     return render(request, 'kitchen/home.html', {
         'households': households, 'upcoming': upcoming, 'feedback': feedback,
         'recipe_count': Recipe.objects.filter(archived=False).count(),
+        'inquiries': Inquiry.objects.filter(handled=False)[:5],
         'new_household_form': NewHouseholdForm(),
     })
 

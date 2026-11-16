@@ -12,6 +12,17 @@
 
 <div class="grid side">
   <div class="stack">
+    {% if inquiries %}
+    <section class="card" aria-labelledby="inq-h">
+      <div class="card-head"><h2 id="inq-h">New website inquiries</h2><a class="small" href="{% url 'website' %}#inquiries">All inquiries</a></div>
+      <ul class="list">
+        {% for q in inquiries %}
+        <li><div class="list-row"><div><strong>{{ q.name }}</strong> <span class="muted small">· <a href="mailto:{{ q.email }}">{{ q.email }}</a>{% if q.service %} · {{ q.service }}{% endif %}</span></div><span class="muted small">{{ q.created_at|timesince }} ago</span></div>
+          <p class="small" style="margin:4px 0 0">“{{ q.message|truncatechars:180 }}”</p></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
     {% if feedback %}
     <section class="card" aria-labelledby="fb-h">
       <h2 id="fb-h">New client responses</h2>

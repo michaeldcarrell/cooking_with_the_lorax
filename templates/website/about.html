@@ -1,0 +1,21 @@
+{% extends "website/_base.html" %}
+{% block title %}About · {% endblock %}
+{% block og_title %}About {{ site.chef_name }}{% endblock %}
+{% block content %}
+<section class="s-page-head"><div class="s-wrap">
+  <p class="c-eyebrow">About</p>
+  <h1>Hi, I'm {{ site.chef_name }}.</h1>
+</div></section>
+<section class="s-section s-tight">
+  <div class="s-wrap s-about{% if photo %} has-photo{% endif %}">
+    <div class="s-prose">
+      {% if site.about %}{{ site.about|linebreaks }}{% else %}
+      <p>I'm a private chef who cooks for households that want good, home-cooked food without the planning, shopping and cooking.</p>
+      <p>Every menu is built around the people eating it: their favorites, their dislikes, and their allergies.</p>
+      {% endif %}
+    </div>
+    {% if photo %}<img src="{{ photo.url }}" alt="{{ photo.label }}" loading="lazy">{% endif %}
+  </div>
+</section>
+{% include "website/_cta.html" %}
+{% endblock %}

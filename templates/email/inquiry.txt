@@ -1,0 +1,13 @@
+{% autoescape off %}New inquiry from the website.
+
+Name: {{ inquiry.name }}
+Email: {{ inquiry.email }}{% if inquiry.phone %}
+Phone: {{ inquiry.phone }}{% endif %}{% if inquiry.service %}
+Looking for: {{ inquiry.service }}{% endif %}{% if inquiry.household_size %}
+People: {{ inquiry.household_size }}{% endif %}{% if inquiry.start_date %}
+Start: {{ inquiry.start_date|date:"l, F j, Y" }}{% endif %}
+
+{{ inquiry.message }}
+
+Reply to this email to answer {{ inquiry.name }}. All inquiries: {{ website_url }}
+{% endautoescape %}

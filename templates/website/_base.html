@@ -1,0 +1,66 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{% endblock %}{{ site.business_name }}</title>
+<meta name="description" content="{% block description %}{{ site.intro|truncatechars:160 }}{% endblock %}">
+<link rel="canonical" href="{{ public_base_url }}{{ request.path }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site.business_name }}">
+<meta property="og:title" content="{% block og_title %}{{ site.business_name }}{% endblock %}">
+<meta property="og:description" content="{{ site.intro|truncatechars:200 }}">
+<meta property="og:url" content="{{ public_base_url }}{{ request.path }}">
+{% block og_image %}{% endblock %}
+<link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+<link rel="stylesheet" href="{% static 'css/site.css' %}">
+{% if site.google_tag_id %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_tag_id }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '{{ site.google_tag_id }}');
+</script>
+{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body class="site">
+<a class="skip" href="#main">Skip to content</a>
+<header class="s-head">
+  <div class="s-wrap">
+    <a class="s-brand" href="{% url 'site_home' %}">Cooking with <em>the Lorax</em></a>
+    <nav class="s-nav" aria-label="Main">
+      <a href="{% url 'site_about' %}"{% if page == 'site_about' %} aria-current="page"{% endif %}>About</a>
+      <a href="{% url 'site_services' %}"{% if page == 'site_services' %} aria-current="page"{% endif %}>Services</a>
+      <a href="{% url 'site_gallery' %}"{% if page == 'site_gallery' %} aria-current="page"{% endif %}>Gallery</a>
+      <a class="s-cta" href="{% url 'site_contact' %}"{% if page == 'site_contact' %} aria-current="page"{% endif %}>Get in touch</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+<footer class="s-foot">
+  <div class="s-wrap s-foot-grid">
+    <div>
+      <p class="s-brand">Cooking with <em>the Lorax</em></p>
+      <p>{{ site.chef_name }}, private chef{% if site.service_area %}<br>{{ site.service_area }}{% endif %}</p>
+    </div>
+    <div>
+      {% if site.contact_email %}<p><a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a></p>{% endif %}
+      {% if site.phone %}<p><a href="tel:{{ site.phone }}">{{ site.phone }}</a></p>{% endif %}
+    </div>
+    <nav aria-label="Footer">
+      <a href="{% url 'site_contact' %}">Contact</a>
+      <a href="{% url 'site_privacy' %}">Privacy</a>
+    </nav>
+  </div>
+  <div class="s-wrap"><p class="s-fine">© {% now "Y" %} {{ site.business_name }}</p></div>
+</footer>
+</body>
+</html>

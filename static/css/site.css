@@ -1,0 +1,95 @@
+/* Public website (cookingwiththe.loraxglobal.com). Builds on app.css tokens. */
+.s-wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 760px) { .s-wrap { padding: 0 32px; } }
+.site main { padding: 0; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 16px; top: 12px; z-index: 10; background: var(--surface); padding: 8px 12px; border-radius: 8px; }
+
+.c-eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: 12.5px; color: var(--accent); font-weight: 600; margin-bottom: 14px; }
+
+/* header */
+.s-head { border-bottom: 1px solid var(--line); background: var(--bg); }
+.s-head .s-wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px 20px; flex-wrap: wrap; padding-top: 16px; padding-bottom: 16px; }
+.s-brand { font-family: Fraunces, Georgia, serif; font-size: 22px; color: var(--ink); text-decoration: none; margin: 0; }
+.s-brand em { color: var(--accent); }
+.s-nav { display: flex; align-items: center; gap: 2px 4px; flex-wrap: wrap; }
+.s-nav a { color: var(--ink); text-decoration: none; padding: 7px 12px; border-radius: 999px; font-size: 15px; }
+.s-nav a:hover { background: var(--surface-2); }
+.s-nav a[aria-current="page"] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; text-decoration-color: var(--accent); }
+.s-nav .s-cta { background: var(--accent); color: var(--accent-ink); font-weight: 500; margin-left: 6px; }
+.s-nav .s-cta:hover { background: var(--accent); filter: brightness(1.07); }
+@media (max-width: 520px) { .s-nav { width: 100%; justify-content: space-between; } .s-nav a { padding: 7px 8px; } .s-nav .s-cta { margin-left: 0; padding: 7px 12px; } }
+
+/* hero */
+.s-hero { padding: 56px 0 64px; }
+.s-hero h1 { font-size: clamp(36px, 6.4vw, 64px); font-weight: 400; letter-spacing: -.02em; line-height: 1.05; margin-bottom: 18px; max-width: 14em; }
+.s-lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 34em; }
+.s-hero-cta { margin-top: 26px; gap: 12px; }
+.s-hero-grid { display: grid; gap: 36px; align-items: center; }
+@media (min-width: 900px) { .s-hero.has-photo .s-hero-grid { grid-template-columns: 1.15fr 1fr; } }
+.s-hero-img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 20px; box-shadow: var(--shadow); }
+@media (max-width: 899px) { .s-hero-img { aspect-ratio: 4 / 3; } }
+.s-btn-lg { padding: 12px 22px; font-size: 16px; min-height: 48px; }
+
+/* sections */
+.s-section { padding: 64px 0; }
+.s-section.s-tight { padding-top: 8px; }
+.s-alt { background: var(--surface-2); }
+.s-h2 { font-size: clamp(26px, 3.6vw, 36px); font-weight: 400; margin-bottom: 28px; }
+.s-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+.s-page-head { padding: 56px 0 32px; }
+.s-page-head h1 { font-size: clamp(34px, 5.4vw, 54px); font-weight: 400; letter-spacing: -.015em; }
+.s-thanks { padding-bottom: 120px; }
+
+.s-steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 28px; counter-reset: step; }
+@media (min-width: 760px) { .s-steps { grid-template-columns: repeat(3, 1fr); } }
+.s-steps li { counter-increment: step; }
+.s-steps li::before { content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--accent); color: var(--accent); font-family: Fraunces, Georgia, serif; font-size: 18px; margin-bottom: 14px; }
+.s-steps h3 { font-size: 21px; font-weight: 400; }
+.s-steps p { color: var(--muted); }
+
+.s-cards { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.s-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 26px; color: inherit; text-decoration: none; box-shadow: var(--shadow); transition: transform .15s ease; }
+.s-card:hover { transform: translateY(-2px); }
+.s-card h3 { font-size: 23px; font-weight: 400; }
+.s-card p { color: var(--muted); }
+.s-more { margin-top: auto; color: var(--accent); font-weight: 500; }
+.s-price { color: var(--accent); font-weight: 600; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .s-card { transition: none; } .s-card:hover { transform: none; } }
+
+.s-gallery { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.s-strip { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.s-gallery figure { margin: 0; }
+.s-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; }
+.s-gallery figcaption { font-size: 14px; color: var(--muted); padding: 8px 2px 0; }
+
+.s-prose { font-size: 17.5px; max-width: 38em; }
+.s-prose p { margin-bottom: 1.1em; }
+.s-about { display: grid; gap: 36px; align-items: start; }
+@media (min-width: 860px) { .s-about.has-photo { grid-template-columns: 1.4fr 1fr; } }
+.s-about img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; }
+
+.s-service { display: grid; gap: 8px 40px; padding: 32px 0; border-top: 1px solid var(--line); scroll-margin-top: 20px; }
+.s-service:first-child { border-top: 0; padding-top: 0; }
+@media (min-width: 820px) { .s-service { grid-template-columns: 1fr 1.6fr; } }
+.s-service h2 { font-size: 28px; font-weight: 400; }
+.s-summary { font-size: 19px; }
+
+.s-contact { display: grid; gap: 32px; align-items: start; }
+@media (min-width: 900px) { .s-contact { grid-template-columns: 1.7fr 1fr; } }
+.s-form { padding: 26px; }
+.s-contact-aside h2 { font-size: 22px; font-weight: 400; }
+.s-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* call to action band + footer */
+.s-band { background: var(--sage); color: var(--sage-ink); padding: 56px 0; }
+.s-band h2 { font-size: clamp(26px, 3.6vw, 36px); font-weight: 400; }
+.s-band p { opacity: .85; max-width: 34em; margin: 0; }
+.s-band-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px 40px; flex-wrap: wrap; }
+.s-foot { padding: 40px 0 28px; color: var(--muted); font-size: 15px; border-top: 1px solid var(--line); }
+.s-foot-grid { display: grid; gap: 20px; }
+@media (min-width: 760px) { .s-foot-grid { grid-template-columns: 2fr 1.5fr 1fr; } }
+.s-foot p { margin: 0 0 6px; }
+.s-foot nav { display: flex; flex-direction: column; gap: 6px; }
+.s-foot .s-brand { font-size: 19px; margin-bottom: 6px; }
+.s-fine { font-size: 13px; margin-top: 24px !important; }

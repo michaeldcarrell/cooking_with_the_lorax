@@ -1,0 +1,16 @@
+{% extends "website/_base.html" %}
+{% block title %}Privacy · {% endblock %}
+{% block content %}
+<section class="s-page-head"><div class="s-wrap">
+  <p class="c-eyebrow">Privacy</p>
+  <h1>Privacy note</h1>
+</div></section>
+<section class="s-section s-tight">
+  <div class="s-wrap s-prose">
+    <p>When you send the contact form, your name, contact details and message are stored so that {{ site.chef_name }} can reply to you. They are not sold or shared with anyone else.</p>
+    <p>If you become a client, the details you share about your household, such as food preferences and allergies, are used only to plan and cook your meals.</p>
+    {% if site.google_tag_id %}<p>This website uses Google's advertising and analytics tag, which sets cookies to measure visits and ad performance. You can control ad personalization in your <a href="https://adssettings.google.com/" rel="noopener">Google ad settings</a>.</p>{% endif %}
+    <p>To see, correct or delete what's stored about you, email {% if site.contact_email %}<a href="mailto:{{ site.contact_email }}">{{ site.contact_email }}</a>{% else %}{{ site.chef_name }}{% endif %}.</p>
+  </div>
+</section>
+{% endblock %}

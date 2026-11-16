@@ -1,8 +1,8 @@
 from django import forms
 
 from kitchen.models import (
-    AllowedUser, Contact, DishPhoto, Household, Menu, MenuItem, PreferenceCategory, PreferenceOption, Recipe,
-    SiteSettings,
+    AllowedUser, Contact, DishPhoto, Household, Inquiry, Menu, MenuItem, PreferenceCategory, PreferenceOption,
+    Recipe, Service, SiteSettings,
 )
 
 DATE = forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d')
@@ -127,7 +127,7 @@ class PhotoUploadForm(forms.Form):
 class PhotoEditForm(forms.ModelForm):
     class Meta:
         model = DishPhoto
-        fields = ['caption', 'recipe']
+        fields = ['caption', 'recipe', 'on_website']
 
 
 class SiteSettingsForm(forms.ModelForm):
@@ -158,3 +158,45 @@ class AllowedUserForm(forms.ModelForm):
 
     def clean_email(self):
         return self.cleaned_data['email'].strip().lower()
+
+
+# --- public website -----------------------------------------------------------------------------------
+
+class WebsiteTextForm(forms.ModelForm):
+    class Meta:
+        model = SiteSettings
+        fields = ['tagline', 'intro', 'about', 'service_area', 'phone', 'google_tag_id', 'google_ads_conversion']
+        widgets = {'intro': forms.Textarea(attrs={'rows': 3}), 'about': forms.Textarea(attrs={'rows': 10})}
+
+
+class ServiceForm(forms.ModelForm):
+    class Meta:
+        model = Service
+        fields = ['name', 'summary', 'details', 'price_note', 'order', 'active']
+        widgets = {'details': forms.Textarea(attrs={'rows': 4})}
+
+
+class InquiryForm(forms.ModelForm):
+    # Left empty by people; bots fill it in. Hidden on the page.
+    website = forms.CharField(required=False, label='Leave this empty')
+
+    class Meta:
+        model = Inquiry
+        fields = ['name', 'email', 'phone', 'service', 'household_size', 'start_date', 'message']
+        labels = {'household_size': 'How many people?', 'start_date': 'When would you like to start?',
+                  'service': 'What are you looking for?', 'message': 'Tell me a little about what you need'}
+        widgets = {'start_date': DATE, 'message': forms.Textarea(attrs={'rows': 5}),
+                   'email': forms.EmailInput(attrs={'autocomplete': 'email'}),
+                   'name': forms.TextInput(attrs={'autocomplete': 'name'}),
+                   'phone': forms.TextInput(attrs={'autocomplete': 'tel', 'type': 'tel'})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        names = list(Service.objects.filter(active=True).values_list('name', flat=True))
+        self.fields['service'] = forms.ChoiceField(
+            required=False, label=self.Meta.labels['service'],
+            choices=[('', 'Choose one')] + [(n, n) for n in names] + [('Something else', 'Something else')])
+        self.fields['household_size'].widget.attrs.update({'min': 1, 'max': 500})
+
+    def is_spam(self) -> bool:
+        return bool(self.cleaned_data.get('website'))

@@ -2,6 +2,7 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 
@@ -48,6 +49,27 @@ class SiteSettings(models.Model):
     menu_footer = models.TextField(
         blank=True, default='Questions or changes? Reply to this email or leave a note on the menu page.',
         help_text='Shown at the bottom of every client menu and menu email.')
+
+    # Public website (cookingwiththe.loraxglobal.com). Edited on the Website page.
+    tagline = models.CharField(
+        max_length=160, default='Home-cooked meals, planned around your household.',
+        help_text='The big headline on the home page.')
+    intro = models.TextField(
+        default='Menus built around what your family loves, and what it can\'t eat. '
+                'You approve the menu, I shop and cook.',
+        help_text='A sentence or two under the headline.')
+    about = models.TextField(
+        blank=True, help_text='The About page. Leave a blank line between paragraphs.')
+    service_area = models.CharField(max_length=200, blank=True, help_text='e.g. Denver and the west suburbs')
+    phone = models.CharField(max_length=40, blank=True, help_text='Shown on the website. Leave blank to hide it.')
+    google_tag_id = models.CharField(
+        max_length=40, blank=True, verbose_name='Google tag ID',
+        validators=[RegexValidator(r'^(AW|G|GT)-[A-Za-z0-9]+$', 'Looks like AW-123456789 or G-ABC123.')],
+        help_text='From Google Ads (AW-…) or Analytics (G-…). Adds the Google tag to the public website.')
+    google_ads_conversion = models.CharField(
+        max_length=80, blank=True, verbose_name='Google Ads conversion',
+        validators=[RegexValidator(r'^AW-\d+/[A-Za-z0-9_-]+$', 'Looks like AW-123456789/AbCdEf.')],
+        help_text='The conversion "send to" value. Counted when someone sends the contact form.')
 
     class Meta:
         verbose_name_plural = 'site settings'
@@ -110,7 +132,7 @@ class Household(models.Model):
         return reverse('household', args=[self.pk])
 
     def client_url(self):
-        return f'{settings.APP_BASE_URL}{reverse("client_household", args=[self.share_token])}'
+        return f'{settings.PUBLIC_BASE_URL}{reverse("client_household", args=[self.share_token])}'
 
     def preferences_by_stance(self) -> dict[str, list['HouseholdPreference']]:
         grouped: dict[str, list] = {key: [] for key, _ in STANCES}
@@ -169,6 +191,8 @@ class DishPhoto(models.Model):
     width = models.PositiveIntegerField(default=0)
     height = models.PositiveIntegerField(default=0)
     caption = models.CharField(max_length=200, blank=True)
+    on_website = models.BooleanField(default=False, verbose_name='Show on website',
+                                     help_text='Show this photo in the public website\'s gallery.')
     recipe = models.ForeignKey('Recipe', null=True, blank=True, on_delete=models.SET_NULL, related_name='photos')
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -182,8 +206,12 @@ class DishPhoto(models.Model):
     def url(self):
         return reverse('photo_file', args=[self.token])
 
+    def label(self) -> str:
+        """The caption, else the recipe's title, else ''."""
+        return self.caption or (self.recipe.title if self.recipe_id and self.recipe else '')
+
     def absolute_url(self):
-        return f'{settings.APP_BASE_URL}{self.url()}'
+        return f'{settings.PUBLIC_BASE_URL}{self.url()}'
 
 
 class Recipe(models.Model):
@@ -287,7 +315,7 @@ class Menu(models.Model):
         return reverse('client_menu', args=[self.share_token])
 
     def client_url(self):
-        return f'{settings.APP_BASE_URL}{self.client_path()}'
+        return f'{settings.PUBLIC_BASE_URL}{self.client_path()}'
 
     def date_range(self) -> str:
         if self.starts_on and self.ends_on and self.ends_on != self.starts_on:
@@ -354,3 +382,39 @@ class ShoppingItem(models.Model):
 
     class Meta:
         ordering = ['name']
+
+
+class Service(models.Model):
+    """Something Lori offers, listed on the public website's Services page."""
+    name = models.CharField(max_length=120)
+    summary = models.CharField(max_length=300, help_text='One line, shown on the home page.')
+    details = models.TextField(blank=True, help_text='The Services page. Leave a blank line between paragraphs.')
+    price_note = models.CharField(max_length=120, blank=True, help_text='Optional, e.g. "From $X per week"')
+    order = models.PositiveIntegerField(default=0)
+    active = models.BooleanField(default=True, help_text='Hidden from the website when off.')
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
+class Inquiry(models.Model):
+    """A message from the public website's contact form."""
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40, blank=True)
+    service = models.CharField(max_length=120, blank=True)
+    household_size = models.PositiveIntegerField(null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    handled = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['handled', '-created_at']
+        verbose_name_plural = 'inquiries'
+
+    def __str__(self):
+        return f'{self.name} ({self.created_at:%b %-d})'

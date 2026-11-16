@@ -106,7 +106,7 @@ form.inline { display: inline; }
 
 /* --- forms --- */
 label { display: block; font-weight: 500; font-size: 14px; margin-bottom: 4px; }
-input[type=text], input[type=email], input[type=url], input[type=number], input[type=date], input[type=search],
+input[type=text], input[type=tel], input[type=email], input[type=url], input[type=number], input[type=date], input[type=search],
 input:not([type]), select, textarea {
   width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg);
   color: var(--ink); font: inherit; min-height: 40px;

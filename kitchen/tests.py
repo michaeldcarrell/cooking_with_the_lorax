@@ -12,8 +12,8 @@ from PIL import Image
 
 from kitchen import importer
 from kitchen.models import (
-    AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Menu, MenuFeedback, MenuItem,
-    PreferenceCategory, PreferenceOption, Recipe, ShoppingItem, Step,
+    AllowedUser, Contact, DishPhoto, Household, HouseholdPreference, Ingredient, Inquiry, Menu, MenuFeedback,
+    MenuItem, PreferenceCategory, PreferenceOption, Recipe, Service, ShoppingItem, SiteSettings, Step,
 )
 from kitchen.quantities import format_amount, normalize_name, normalize_unit, parse_amount
 from kitchen.services import rebuild_shopping_list
@@ -428,3 +428,119 @@ class ManageTests(SignedInTestCase):
                     reverse('menu_send', args=[menu.pk]), reverse('recipes'), reverse('recipe_new'),
                     reverse('recipe_edit', args=[recipe.pk]), reverse('photos'), reverse('manage')]:
             self.assertEqual(self.client.get(url).status_code, 200, url)
+
+
+PUBLIC = 'cookingwiththe.loraxglobal.com'
+CHEF = 'chef.cookingwiththe.loraxglobal.com'
+
+
+@override_settings(PUBLIC_BASE_URL=f'https://{PUBLIC}', PUBLIC_HOST=PUBLIC,
+                   CHEF_BASE_URL=f'https://{CHEF}', CHEF_HOST=CHEF,
+                   EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class WebsiteTests(TestCase):
+    def public(self, path, **kwargs):
+        return self.client.get(path, HTTP_HOST=PUBLIC, secure=True, **kwargs)
+
+    def test_public_pages_need_no_sign_in(self):
+        for path in ['/', '/about/', '/services/', '/gallery/', '/contact/', '/contact/thanks/', '/privacy/',
+                     '/robots.txt', '/sitemap.xml']:
+            response = self.public(path)
+            self.assertEqual(response.status_code, 200, path)
+            self.assertNotIn('X-Robots-Tag', response, path)
+        self.assertContains(self.public('/'), 'Weekly meals at home')  # seeded service
+        self.assertContains(self.public('/sitemap.xml'), f'https://{PUBLIC}/services/')
+
+    def test_workspace_host_is_private_and_noindex(self):
+        response = self.client.get('/', HTTP_HOST=CHEF, secure=True)
+        self.assertRedirects(response, reverse('welcome'), fetch_redirect_response=False)
+        self.assertEqual(response['X-Robots-Tag'], 'noindex, nofollow')
+        self.assertContains(self.client.get('/robots.txt', HTTP_HOST=CHEF), 'Disallow: /')
+
+    def test_workspace_paths_on_public_host_redirect(self):
+        response = self.public('/recipes/?q=soup')
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response['Location'], f'https://{CHEF}/recipes/?q=soup')
+        self.assertEqual(self.public('/accounts/google/login/')['Location'],
+                         f'https://{CHEF}/accounts/google/login/')
+        self.assertEqual(self.public('/no-such-page/').status_code, 404)
+
+    def test_client_links_use_public_host_and_work_on_both(self):
+        household = Household.objects.create(name='Smiths')
+        menu = Menu.objects.create(household=household, title='Week 1', status='sent')
+        self.assertEqual(menu.client_url(), f'https://{PUBLIC}/m/{menu.share_token}/')
+        self.assertContains(self.public(menu.client_path()), 'Week 1')
+        self.assertContains(self.client.get(menu.client_path(), HTTP_HOST=CHEF), 'Week 1')
+        self.assertContains(self.public(f'/h/{household.share_token}/'), 'Week 1')
+
+    def test_gallery_shows_only_website_photos(self):
+        shown = DishPhoto.objects.create(image=b'x', caption='Braised short ribs', on_website=True)
+        DishPhoto.objects.create(image=b'x', caption='Private test dish')
+        page = self.public('/gallery/')
+        self.assertContains(page, 'Braised short ribs')
+        self.assertContains(page, shown.url())
+        self.assertNotContains(page, 'Private test dish')
+        self.assertEqual(self.public(shown.url()).status_code, 200)
+
+    def test_contact_form_saves_and_emails(self):
+        response = self.client.post('/contact/', {
+            'name': 'Jo Client', 'email': 'jo@example.com', 'service': 'Weekly meals at home',
+            'household_size': 4, 'message': 'We need dinners Mon-Thu.',
+        }, HTTP_HOST=PUBLIC, secure=True)
+        self.assertRedirects(response, '/contact/thanks/', fetch_redirect_response=False)
+        inquiry = Inquiry.objects.get()
+        self.assertEqual(inquiry.service, 'Weekly meals at home')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].reply_to, ['jo@example.com'])
+        self.assertIn('Mon-Thu', mail.outbox[0].body)
+        self.assertIn(f'https://{CHEF}/website/', mail.outbox[0].body)
+
+    def test_contact_form_honeypot_drops_spam(self):
+        response = self.client.post('/contact/', {
+            'name': 'Bot', 'email': 'bot@example.com', 'message': 'buy now', 'website': 'http://spam.example',
+        }, HTTP_HOST=PUBLIC, secure=True)
+        self.assertRedirects(response, '/contact/thanks/', fetch_redirect_response=False)
+        self.assertFalse(Inquiry.objects.exists())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_google_tag_and_conversion(self):
+        self.assertNotContains(self.public('/'), 'googletagmanager')
+        site = SiteSettings.load()
+        site.google_tag_id = 'AW-123456789'
+        site.google_ads_conversion = 'AW-123456789/AbC-d_1'
+        site.save()
+        self.assertContains(self.public('/'), 'gtag/js?id=AW-123456789')
+        self.assertNotContains(self.public('/'), "'conversion'")
+        self.assertContains(self.public('/contact/thanks/'), "'send_to': 'AW-123456789/AbC-d_1'")
+
+
+@override_settings(PUBLIC_BASE_URL=f'https://{PUBLIC}', PUBLIC_HOST=PUBLIC,
+                   CHEF_BASE_URL=f'https://{CHEF}', CHEF_HOST=CHEF)
+class WebsiteManageTests(SignedInTestCase):
+    def test_edit_text_services_and_inquiries(self):
+        response = self.client.post(reverse('website'), {
+            'action': 'text', 'tagline': 'Dinner, handled.', 'intro': 'Weekly menus.', 'about': 'I cook.',
+            'service_area': 'Denver', 'phone': '', 'google_tag_id': 'not-a-tag', 'google_ads_conversion': '',
+        })
+        self.assertContains(response, 'Looks like AW-123456789')
+        self.client.post(reverse('website'), {
+            'action': 'text', 'tagline': 'Dinner, handled.', 'intro': 'Weekly menus.', 'about': 'I cook.',
+            'service_area': 'Denver', 'phone': '', 'google_tag_id': 'G-ABC123', 'google_ads_conversion': '',
+        })
+        self.assertEqual(SiteSettings.load().tagline, 'Dinner, handled.')
+
+        self.client.post(reverse('website'), {'action': 'service', 'svc-name': 'Meal prep', 'svc-summary': 'Batch cooking.',
+                                              'svc-order': 3, 'svc-active': 'on'})
+        service = Service.objects.get(name='Meal prep')
+        self.client.post(reverse('website_service', args=[service.pk]), {
+            f's{service.pk}-name': 'Meal prep', f's{service.pk}-summary': 'Batch cooking.', f's{service.pk}-order': 3})
+        service.refresh_from_db()
+        self.assertFalse(service.active)
+        page = self.client.get('/services/', HTTP_HOST=PUBLIC)
+        self.assertContains(page, 'Denver')
+        self.assertNotContains(page, 'Meal prep')
+
+        inquiry = Inquiry.objects.create(name='Jo', email='jo@example.com', message='Hi')
+        self.assertContains(self.client.get(reverse('home')), 'New website inquiries')
+        self.client.post(reverse('website_inquiry', args=[inquiry.pk]), {'action': 'toggle'})
+        inquiry.refresh_from_db()
+        self.assertTrue(inquiry.handled)

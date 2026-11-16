@@ -1,0 +1,61 @@
+{% extends "website/_base.html" %}
+{% block title %}{{ site.chef_name }}, private chef · {% endblock %}
+{% block og_image %}{% if photos %}<meta property="og:image" content="{{ public_base_url }}{{ photos.0.url }}">{% endif %}{% endblock %}
+{% block content %}
+<section class="s-hero{% if photos %} has-photo{% endif %}">
+  <div class="s-wrap s-hero-grid">
+    <div>
+      <p class="c-eyebrow">{{ site.chef_name }} · Private chef{% if site.service_area %} · {{ site.service_area }}{% endif %}</p>
+      <h1>{{ site.tagline }}</h1>
+      <p class="s-lede">{{ site.intro }}</p>
+      <div class="row s-hero-cta">
+        <a class="btn s-btn-lg" href="{% url 'site_contact' %}">Get in touch</a>
+        <a class="btn secondary s-btn-lg" href="{% url 'site_services' %}">See services</a>
+      </div>
+    </div>
+    {% if photos %}<img class="s-hero-img" src="{{ photos.0.url }}" alt="{{ photos.0.label }}" width="{{ photos.0.width }}" height="{{ photos.0.height }}">{% endif %}
+  </div>
+</section>
+
+<section class="s-section">
+  <div class="s-wrap">
+    <h2 class="s-h2">How it works</h2>
+    <ol class="s-steps">
+      <li><h3>Tell me about your household</h3><p>Who's eating, what they love, and anything they avoid or are allergic to.</p></li>
+      <li><h3>Review your menu</h3><p>You get a menu by email. Approve it or ask for changes, no account needed.</p></li>
+      <li><h3>Enjoy the food</h3><p>I do the shopping and the cooking, so you can sit down to dinner.</p></li>
+    </ol>
+  </div>
+</section>
+
+{% if services %}
+<section class="s-section s-alt">
+  <div class="s-wrap">
+    <h2 class="s-h2">Services</h2>
+    <div class="s-cards">
+      {% for s in services %}
+      <a class="s-card" href="{% url 'site_services' %}#service-{{ s.pk }}">
+        <h3>{{ s.name }}</h3>
+        <p>{{ s.summary }}</p>
+        {% if s.price_note %}<p class="s-price">{{ s.price_note }}</p>{% endif %}
+        <span class="s-more">Learn more →</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if photos|length > 1 %}
+<section class="s-section">
+  <div class="s-wrap">
+    <div class="s-section-head"><h2 class="s-h2">From the kitchen</h2><a href="{% url 'site_gallery' %}">See the gallery →</a></div>
+    <div class="s-gallery s-strip">
+      {% for p in photos|slice:"1:" %}<figure><img src="{{ p.url }}" alt="{{ p.label }}" loading="lazy">{% if p.label %}<figcaption>{{ p.label }}</figcaption>{% endif %}</figure>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% include "website/_cta.html" %}
+{% endblock %}

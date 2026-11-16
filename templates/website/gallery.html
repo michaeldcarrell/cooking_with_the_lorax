@@ -1,0 +1,20 @@
+{% extends "website/_base.html" %}
+{% block title %}Gallery · {% endblock %}
+{% block og_title %}Gallery · {{ site.business_name }}{% endblock %}
+{% block og_image %}{% if photos %}<meta property="og:image" content="{{ public_base_url }}{{ photos.0.url }}">{% endif %}{% endblock %}
+{% block content %}
+<section class="s-page-head"><div class="s-wrap">
+  <p class="c-eyebrow">Gallery</p>
+  <h1>From the kitchen.</h1>
+</div></section>
+<section class="s-section s-tight">
+  <div class="s-wrap">
+    {% if photos %}
+    <div class="s-gallery">
+      {% for p in photos %}<figure><img src="{{ p.url }}" alt="{{ p.label }}" loading="lazy">{% if p.label %}<figcaption>{{ p.label }}</figcaption>{% endif %}</figure>{% endfor %}
+    </div>
+    {% else %}<p class="muted">Photos are coming soon.</p>{% endif %}
+  </div>
+</section>
+{% include "website/_cta.html" %}
+{% endblock %}

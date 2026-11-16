@@ -5,6 +5,7 @@ All secrets and deployment-specific values come from the environment (`stack.env
 loaded by python-decouple). See README.md for the full list of variable names.
 """
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from decouple import Csv, config
 from django.core.exceptions import ImproperlyConfigured
@@ -14,11 +15,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Public URL used to build links in emails (client menu links, photos).
-APP_BASE_URL = config('APP_BASE_URL', default='https://cookingwiththe.loraxglobal.com').rstrip('/')
+# Two hostnames, one app (kitchen.middleware.HostRoutingMiddleware picks the URLs by host):
+# - PUBLIC_BASE_URL: the customer-facing website, and the domain client menu/photo links use in emails.
+#   (APP_BASE_URL is the variable's old name and still works.)
+# - CHEF_BASE_URL: Lori's signed-in workspace. Any host other than the public one gets the workspace.
+PUBLIC_BASE_URL = config('PUBLIC_BASE_URL', default=config('APP_BASE_URL', default='https://cookingwiththe.loraxglobal.com')).rstrip('/')
+CHEF_BASE_URL = config('CHEF_BASE_URL', default='https://chef.cookingwiththe.loraxglobal.com').rstrip('/')
+PUBLIC_HOST = urlsplit(PUBLIC_BASE_URL).hostname
+CHEF_HOST = urlsplit(CHEF_BASE_URL).hostname
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = [APP_BASE_URL]
+CSRF_TRUSTED_ORIGINS = [PUBLIC_BASE_URL, CHEF_BASE_URL]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
@@ -66,6 +73,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "kitchen.middleware.HostRoutingMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

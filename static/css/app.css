@@ -238,6 +238,18 @@ form.is-busy .busy { display: flex; }
 .welcome h1 em { color: #e09a72; }
 .welcome p { color: #d9d2c0; max-width: 30em; margin: 0 auto 28px; }
 
+/* --- tag badges (recipe editor) --- */
+.tag-box { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; min-height: 40px;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--bg); cursor: text; }
+.tag-box:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tag-box .tag { display: inline-flex; align-items: center; gap: 2px; padding: 3px 4px 3px 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; line-height: 1.2; }
+.tag-box .tag button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+  width: 22px; height: 22px; border-radius: 50%; padding: 0; }
+.tag-box .tag button:hover { color: var(--bad); background: var(--surface); }
+.tag-box input { border: 0; outline: 0; background: transparent; width: auto; flex: 1 1 140px; min-width: 120px; min-height: 28px; padding: 2px 4px; }
+.tag-box input:focus-visible { outline: 0; }
+
 details.more summary { cursor: pointer; color: var(--accent); }
 .danger-zone { border-color: var(--bad); }
 hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }

@@ -492,6 +492,8 @@ def recipe_edit(request, pk):
         ingredient_rows = [(ing, ing.amount()) for ing in recipe.ingredients.all()]
     return render(request, 'kitchen/recipe_edit.html', {
         'recipe': recipe, 'form': form, 'ingredient_rows': ingredient_rows, 'steps': steps, 'sections': SECTIONS,
+        'all_tags': sorted({t for tags in Recipe.objects.exclude(tags='').values_list('tags', flat=True)
+                            for t in (x.strip().lower() for x in tags.split(',')) if t}),
     })
 
 

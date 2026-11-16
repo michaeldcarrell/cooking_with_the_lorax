@@ -88,6 +88,94 @@
     if (btn && e.target.closest('[data-row]') === rows[rows.length - 1]) btn.click();
   });
 
+
+  // Tag badges: <input data-tag-input="datalist-id"> holding "a, b, c" becomes removable badges plus
+  // a box for new tags (Enter or comma adds one; Backspace in an empty box removes the last). The
+  // original input stays in the form, hidden, and is kept in sync, so the server still gets "a, b, c".
+  document.querySelectorAll('input[data-tag-input]').forEach(function (source) {
+    var tags = [];
+    source.value.split(',').forEach(function (t) { t = t.trim().toLowerCase(); if (t && tags.indexOf(t) < 0) tags.push(t); });
+
+    var box = document.createElement('div');
+    box.className = 'tag-box';
+    var list = document.createElement('span');
+    list.setAttribute('role', 'list');
+    list.style.display = 'contents';
+    var entry = document.createElement('input');
+    entry.type = 'text';
+    entry.id = source.id;
+    entry.autocomplete = 'off';
+    entry.placeholder = 'Add a tag';
+    var datalist = source.getAttribute('data-tag-input');
+    if (datalist) entry.setAttribute('list', datalist);
+    if (source.getAttribute('aria-describedby')) entry.setAttribute('aria-describedby', source.getAttribute('aria-describedby'));
+    var live = document.createElement('span');
+    live.className = 'sr-only';
+    live.setAttribute('aria-live', 'polite');
+
+    source.id = source.id + '-value';
+    source.type = 'hidden';
+    source.parentNode.insertBefore(box, source);
+    box.appendChild(list);
+    box.appendChild(entry);
+    box.appendChild(live);
+    box.addEventListener('click', function (e) { if (e.target === box) entry.focus(); });
+
+    function sync() { source.value = tags.join(', '); }
+    function render() {
+      list.textContent = '';
+      tags.forEach(function (tag, i) {
+        var chip = document.createElement('span');
+        chip.className = 'tag';
+        chip.setAttribute('role', 'listitem');
+        chip.appendChild(document.createTextNode(tag));
+        var remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', 'Remove tag ' + tag);
+        remove.addEventListener('click', function () {
+          tags.splice(i, 1); sync(); render(); live.textContent = 'Removed ' + tag;
+          entry.focus();
+        });
+        chip.appendChild(remove);
+        list.appendChild(chip);
+      });
+    }
+    function add(text) {
+      var added = [];
+      text.split(',').forEach(function (t) {
+        t = t.trim().toLowerCase();
+        if (t && tags.indexOf(t) < 0) { tags.push(t); added.push(t); }
+      });
+      if (added.length) { sync(); render(); live.textContent = 'Added ' + added.join(', '); }
+    }
+    entry.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        add(entry.value);
+        entry.value = '';
+      } else if (e.key === 'Backspace' && !entry.value && tags.length) {
+        var gone = tags.pop(); sync(); render(); live.textContent = 'Removed ' + gone;
+      }
+    });
+    // Picking a suggestion, pasting "a, b", or leaving the box with text in it all add the tag.
+    function isSuggestion(value) {
+      var options = datalist ? document.querySelectorAll('#' + datalist + ' option') : [];
+      return Array.prototype.some.call(options, function (o) { return o.value === value; });
+    }
+    entry.addEventListener('input', function (e) {
+      // A datalist pick arrives as an input event with no typed character (not an InputEvent in some
+      // browsers, inputType "insertReplacementText" in others).
+      var picked = !(e instanceof InputEvent) || e.inputType === 'insertReplacementText';
+      if (entry.value.indexOf(',') >= 0 || (picked && isSuggestion(entry.value))) {
+        add(entry.value); entry.value = '';
+      }
+    });
+    entry.addEventListener('blur', function () { if (entry.value.trim()) { add(entry.value); entry.value = ''; } });
+    entry.form && entry.form.addEventListener('submit', function () { if (entry.value.trim()) { add(entry.value); entry.value = ''; } });
+    render();
+  });
+
   // Shopping list checkboxes save as they're ticked.
   function updateProgress() {
     var boxes = document.querySelectorAll('.shop-item input[type=checkbox]');

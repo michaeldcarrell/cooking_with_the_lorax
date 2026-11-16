@@ -40,8 +40,15 @@ class RecipeForm(forms.ModelForm):
         model = Recipe
         fields = ['title', 'description', 'servings', 'prep_minutes', 'cook_minutes', 'tags', 'chef_notes',
                   'source_url', 'photo']
-        widgets = {'description': forms.Textarea(attrs={'rows': 2}), 'chef_notes': forms.Textarea(attrs={'rows': 3})}
+        widgets = {'description': forms.Textarea(attrs={'rows': 2}), 'chef_notes': forms.Textarea(attrs={'rows': 3}),
+                   # Shown as removable badges by static/js/app.js; still saved as comma-separated text.
+                   'tags': forms.TextInput(attrs={'data-tag-input': 'tag-options'})}
         labels = {'prep_minutes': 'Prep (min)', 'cook_minutes': 'Cook (min)', 'source_url': 'Source link'}
+        help_texts = {'tags': 'Press Enter or comma after each tag, e.g. gluten-free, dinner, freezer-friendly'}
+
+    def clean_tags(self):
+        tags = [t.strip().lower() for t in self.cleaned_data['tags'].split(',') if t.strip()]
+        return ', '.join(dict.fromkeys(tags))[:300]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

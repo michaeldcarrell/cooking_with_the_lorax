@@ -154,6 +154,17 @@ class RecipeTests(SignedInTestCase):
         self.assertEqual([str(i) for i in recipe.ingredients.all()], ['1 ½ cups stock', '2–3 cloves garlic, minced'])
         self.assertEqual([s.text for s in recipe.steps.all()], ['Simmer.', 'Blend.'])
 
+    def test_tags_cleaned_and_suggested(self):
+        Recipe.objects.create(title='Salad', tags='vegetarian, quick')
+        recipe = Recipe.objects.create(title='Soup')
+        page = self.client.get(reverse('recipe_edit', args=[recipe.pk]))
+        self.assertContains(page, 'data-tag-input="tag-options"')
+        self.assertContains(page, '<option value="vegetarian">', html=False)
+        self.client.post(reverse('recipe_edit', args=[recipe.pk]), {
+            'title': 'Soup', 'servings': 4, 'tags': ' Dinner, beef,,dinner , Gluten-Free'})
+        recipe.refresh_from_db()
+        self.assertEqual(recipe.tags, 'dinner, beef, gluten-free')
+
     def test_bad_amount_keeps_form(self):
         recipe = Recipe.objects.create(title='Soup')
         response = self.client.post(reverse('recipe_edit', args=[recipe.pk]), {
